@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Live Map — Trinetra</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="assets/style.css"/>
+  <script src="assets/config.js"></script>
+</head>
+<body data-page="map">
+  <main class="main">
+    <div class="container-inner">
+
+      <div class="page-head">
+        <div>
+          <h1>Live Map</h1>
+          <p>Colour-shaded zones show air quality intensity across the monitored region.</p>
+        </div>
+        <div style="display:flex;gap:8px">
+          <div class="seg" data-seg>
+            <button type="button" class="active">AQI</button>
+            <button type="button">Temperature</button>
+            <button type="button">Dust</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="map-shell" role="img" aria-label="Air quality map with no data available">
+        <div class="empty" style="max-width:420px">
+          <span class="empty-title">Map coverage not available</span>
+          <span class="empty-copy">
+            Shaded intensity zones and sensor pins will render here once the sensor
+            network reports readings for the region.
+          </span>
+          <span class="tag">Awaiting sensor network</span>
+        </div>
+
+        <div class="map-search" aria-hidden="true">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <input type="search" placeholder="Search a location..." aria-label="Search region"/>
+        </div>
+
+        <div class="map-sidebar" aria-label="Legend">
+          <div class="map-panel">
+            <h4>AQI legend</h4>
+            <div class="legend-grid">
+              <div class="legend-item"><span class="legend-swatch" style="background:#4CAF50"></span>Good <small>0–50</small></div>
+              <div class="legend-item"><span class="legend-swatch" style="background:#FFC107"></span>Moderate <small>51–100</small></div>
+              <div class="legend-item"><span class="legend-swatch" style="background:#FF9800"></span>Poor <small>101–150</small></div>
+              <div class="legend-item"><span class="legend-swatch" style="background:#F44336"></span>Unhealthy <small>151–200</small></div>
+              <div class="legend-item"><span class="legend-swatch" style="background:#7B1FA2"></span>Severe <small>201+</small></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <script src="assets/supabase.js"></script>
+  <script src="assets/app.js"></script>
+</body>
+</html>

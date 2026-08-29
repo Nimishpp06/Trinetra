@@ -1,0 +1,45 @@
+# Environment
+.env
+.env.local
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+
+# Data (local CSV files - not committed)
+data/raw/
+data/processed/*.csv
+
+# Models (trained models - not committed)
+models/
+ml/models/
+*.joblib
+*.pkl
+*.h5
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Vercel
+.vercel
+
+# Logs
+*.log
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
+# Firmware secrets
+firmware/trinetra_esp32/config.h

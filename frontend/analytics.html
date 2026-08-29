@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Analytics — Trinetra</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="assets/style.css"/>
+  <script src="assets/config.js"></script>
+</head>
+<body data-page="analytics">
+  <main class="main">
+    <div class="container-inner">
+
+      <div class="page-head">
+        <div>
+          <h1>Analytical Insights</h1>
+          <p>Explore trends in air quality with combined filters over location and time.</p>
+        </div>
+        <button class="btn btn-ghost btn-sm" disabled style="opacity:.5">Export report</button>
+      </div>
+
+      <section class="filter-bar" aria-label="Filters">
+        <div class="filter-group">
+          <label for="f-location">Locations</label>
+          <select id="f-location" aria-label="Select location">
+            <option>All locations</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label for="f-from">From</label>
+          <input id="f-from" type="date" aria-label="Start date"/>
+        </div>
+        <div class="filter-group">
+          <label for="f-to">To</label>
+          <input id="f-to" type="date" aria-label="End date"/>
+        </div>
+        <div class="filter-group">
+          <label>Granularity</label>
+          <div class="seg" data-seg>
+            <button type="button">Hourly</button>
+            <button type="button" class="active">Daily</button>
+            <button type="button">Weekly</button>
+            <button type="button">Monthly</button>
+          </div>
+        </div>
+        <div class="filter-group">
+          <label>Parameters</label>
+          <div class="chips" data-chips>
+            <button type="button" class="chip active"><span class="dot" style="color:var(--crimson)"></span>AQI</button>
+            <button type="button" class="chip" ><span class="dot" style="color:var(--moderate)"></span>Temperature</button>
+            <button type="button" class="chip"><span class="dot" style="color:var(--poor)"></span>Dust PM2.5</button>
+            <button type="button" class="chip"><span class="dot" style="color:#1E5D94"></span>Humidity</button>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-left:auto">
+          <button class="btn btn-ghost btn-sm">Reset</button>
+          <button class="btn btn-primary btn-sm">Apply</button>
+        </div>
+      </section>
+
+      <section class="chart-grid" aria-label="Charts">
+        <article class="card chart-panel w8">
+          <div class="chart-head">
+            <div>
+              <h3>AQI over time</h3>
+              <p>Trend for the selected period and locations</p>
+            </div>
+            <div class="chart-actions">
+              <button aria-label="Expand" title="Expand"><span class="icon">⤢</span></button>
+              <button aria-label="Download" title="Download"><span class="icon">↓</span></button>
+            </div>
+          </div>
+          <div class="chart-body">
+            <div class="empty">
+              <span class="empty-title">No series to plot</span>
+              <span class="empty-copy">Select a date range and location — the chart will render once readings exist.</span>
+              <span class="tag">Awaiting data</span>
+            </div>
+          </div>
+        </article>
+
+        <article class="card chart-panel w4">
+          <div class="chart-head">
+            <div>
+              <h3>Status distribution</h3>
+              <p>Share of readings by AQI category</p>
+            </div>
+          </div>
+          <div class="chart-body small">
+            <div class="empty">
+              <span class="empty-title">No distribution</span>
+              <span class="empty-copy">Categories will appear once readings are recorded.</span>
+              <span class="tag">Awaiting data</span>
+            </div>
+          </div>
+        </article>
+
+        <article class="card chart-panel w6">
+          <div class="chart-head">
+            <div>
+              <h3>Average AQI by location</h3>
+              <p>Comparison across monitored zones</p>
+            </div>
+          </div>
+          <div class="chart-body small">
+            <div class="empty">
+              <span class="empty-title">No comparison yet</span>
+              <span class="empty-copy">Location averages will be listed here as bars.</span>
+              <span class="tag">Awaiting data</span>
+            </div>
+          </div>
+        </article>
+
+        <article class="card chart-panel w6">
+          <div class="chart-head">
+            <div>
+              <h3>Forecast · next 24h</h3>
+              <p>Model prediction overlay (dashed)</p>
+            </div>
+          </div>
+          <div class="chart-body small">
+            <div class="empty">
+              <span class="empty-title">No forecast available</span>
+              <span class="empty-copy">A forecast line will appear once a prediction model is trained on readings.</span>
+              <span class="tag">Model not ready</span>
+            </div>
+          </div>
+        </article>
+      </section>
+
+    </div>
+  </main>
+
+  <script src="assets/supabase.js"></script>
+  <script src="assets/app.js"></script>
+</body>
+</html>

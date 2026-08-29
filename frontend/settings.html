@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Settings — Trinetra</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="assets/style.css"/>
+  <script src="assets/config.js"></script>
+</head>
+<body data-page="settings">
+  <main class="main">
+    <div class="container-inner">
+
+      <div class="page-head">
+        <div>
+          <h1>Settings</h1>
+          <p>Manage your profile, preferences and platform status.</p>
+        </div>
+      </div>
+
+      <div class="settings-grid">
+
+        <section class="card settings-card">
+          <h3>Profile</h3>
+          <p class="desc">Account details used across the suite.</p>
+          <div class="setting-row">
+            <div><div class="label">Name</div><div class="hint">Full display name</div></div>
+            <span class="value-chip">—</span>
+          </div>
+          <div class="setting-row">
+            <div><div class="label">Email</div><div class="hint">University account used to sign in</div></div>
+            <span class="value-chip">—</span>
+          </div>
+          <div class="setting-row">
+            <div><div class="label">Role</div><div class="hint">Access level for the suite</div></div>
+            <span class="value-chip">—</span>
+          </div>
+        </section>
+
+        <section class="card settings-card">
+          <h3>Notifications</h3>
+          <p class="desc">Choose when Trinetra alerts you.</p>
+          <div class="setting-row">
+            <div><div class="label">AQI threshold alerts</div><div class="hint">When any zone crosses a set limit</div></div>
+            <label class="switch"><input type="checkbox" aria-label="Enable AQI threshold alerts"/><span class="slider"></span></label>
+          </div>
+          <div class="setting-row">
+            <div><div class="label">Daily summary</div><div class="hint">Email digest of the day's readings</div></div>
+            <label class="switch"><input type="checkbox" aria-label="Enable daily summary"/><span class="slider"></span></label>
+          </div>
+          <div class="setting-row">
+            <div><div class="label">Sensor offline notice</div><div class="hint">When a node stops reporting</div></div>
+            <label class="switch"><input type="checkbox" aria-label="Enable sensor offline notice"/><span class="slider"></span></label>
+          </div>
+        </section>
+
+        <section class="card settings-card">
+          <h3>Appearance</h3>
+          <p class="desc">Interface preferences for this device.</p>
+          <div class="setting-row">
+            <div><div class="label">Theme</div><div class="hint">Light or dark appearance</div></div>
+            <div class="seg" data-seg>
+              <button type="button" class="active">Light</button>
+              <button type="button">Dark</button>
+            </div>
+          </div>
+          <div class="setting-row">
+            <div><div class="label">Language</div><div class="hint">Interface language</div></div>
+            <span class="value-chip">English</span>
+          </div>
+        </section>
+
+      </div>
+
+    </div>
+  </main>
+
+  <script src="assets/supabase.js"></script>
+  <script src="assets/app.js"></script>
+</body>
+</html>

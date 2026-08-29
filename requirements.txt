@@ -1,0 +1,22 @@
+# Core ML
+scikit-learn>=1.3.0
+joblib>=1.3.0
+numpy>=1.24.0
+pandas>=2.0.0
+
+# Deep Learning (Keras 3 with PyTorch backend)
+keras>=3.0.0
+torch>=2.0.0
+
+# Visualization
+matplotlib>=3.7.0
+
+# API / Web (for Vercel functions)
+fastapi>=0.100.0
+pydantic>=2.0.0
+python-dotenv>=1.0.0
+google-generativeai>=0.7.0
+langdetect>=1.0.9
+
+# Optional: for model inspection
+# shap>=0.42.0
