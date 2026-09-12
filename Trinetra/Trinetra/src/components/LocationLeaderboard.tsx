@@ -8,13 +8,6 @@ interface LeaderboardRow {
     status: string;
 }
 
-const leaderboardData: LeaderboardRow[] = [
-    { location: 'Engineering Block', type: 'Campus', aqi: 156, pollutant: 'PM2.5', status: 'Poor' },
-    { location: 'Kurla Station Area', type: 'City', aqi: 142, pollutant: 'PM10', status: 'Poor' },
-    { location: 'Vidyavihar Station', type: 'City', aqi: 118, pollutant: 'PM2.5', status: 'Moderate' },
-    { location: 'Sports Ground', type: 'Campus', aqi: 92, pollutant: 'O3', status: 'Moderate' },
-    { location: 'Hostel Campus', type: 'Campus', aqi: 45, pollutant: 'None', status: 'Good' },
-];
 
 function getAQIColor(aqi: number): string {
     if (aqi <= 50) return '#16a34a';

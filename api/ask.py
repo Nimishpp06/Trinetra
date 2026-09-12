@@ -103,98 +103,14 @@ def detect_language(text: str) -> str:
     return "en"
 
 
+
+
 def build_context(station_id: str) -> dict:
-    """Fetch relevant context from Supabase. Placeholder - implement with Supabase client."""
-    # TODO: Implement actual Supabase query
-    # For now, return mock context
-    return {
-        "station": station_id or "station_01",
-        "current": {
-            "aqi": 57,
-            "pm25": 34.7,
-            "gas": 543,
-            "temp": 28.8,
-            "humidity": 85.7,
-            "source": "ambient",
-            "timestamp": "2024-01-15T10:30:00Z"
-        },
-        "trend_24h": {
-            "avg_aqi": 62,
-            "max_aqi": 89,
-            "min_aqi": 45,
-            "dominant_source": "ambient"
-        },
-        "forecast": {
-            "next_hour_aqi": 61,
-            "next_6h_aqi": 58,
-            "next_24h_aqi": 65
-        }
-    }
-
-
-def build_prompt(question: str, language: str, context: dict) -> str:
-    """Build the full prompt for Gemini."""
-    lang_name = INDIAN_LANGUAGES.get(language, "English")
+    """Fetch relevant context from Supabase. Placeholder - implement with Supabase client.
     
-    context_str = f"""
-CURRENT READINGS ({context['station']}):
-- AQI: {context['current']['aqi']} ({context['current']['source']})
-- PM2.5: {context['current']['pm25']} µg/m³
-- Gas (MQ135 raw): {context['current']['gas']}
-- Temperature: {context['current']['temp']}°C
-- Humidity: {context['current']['humidity']}%
-- Time: {context['current']['timestamp']}
-
-24-HOUR TREND:
-- Average AQI: {context['trend_24h']['avg_aqi']}
-- Range: {context['trend_24h']['min_aqi']} - {context['trend_24h']['max_aqi']}
-- Dominant source: {context['trend_24h']['dominant_source']}
-
-FORECAST:
-- Next hour: {context['forecast']['next_hour_aqi']} AQI
-- Next 6 hours: {context['forecast']['next_6h_aqi']} AQI
-- Next 24 hours: {context['forecast']['next_24h_aqi']} AQI
-"""
-    
-    prompt = f"{SYSTEM_PROMPT}\n\nCONTEXT:\n{context_str}\n\nUSER QUESTION ({lang_name}): {question}\n\nANSWER IN {lang_name.upper()}:"
-    return prompt
-
-
-@app.post("/api/ask", response_model=AskResponse)
-async def ask(request: AskRequest):
-    if not GEMINI_AVAILABLE:
-        raise HTTPException(status_code=503, detail="Gemini SDK not installed")
-    
-    api_key = os.getenv("GEMINI_API_KEY")
-    if not api_key:
-        raise HTTPException(status_code=503, detail="GEMINI_API_KEY not configured")
-    
-    # Detect language if not provided
-    language = request.language or detect_language(request.question)
-    
-    # Build context from Supabase (implement actual query)
-    context = build_context(request.station_id)
-    
-    # Build prompt
-    prompt = build_prompt(request.question, language, context)
-    
-    try:
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel("gemini-1.5-flash")
-        response = model.generate_content(prompt)
-        answer = response.text.strip()
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Gemini API error: {str(e)}")
-    
-    # Check if response contains refusal
-    refused = "I can only answer questions about air quality" in answer
-    
-    return AskResponse(
-        answer=answer,
-        language=language,
-        sources=[f"{context['station']} current reading", "24h trend", "forecast"],
-        refused=refused
-    )
+    TODO: Replace with actual Supabase query instead of mock data.
+    """
+    pass
 
 
 handler = app

@@ -1,15 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Plus, Minus, Crosshair, Layers, Play, Pause } from 'lucide-react';
 
-// Sensor data with locations on a 0-100% coordinate grid
-const sensors = [
-    { id: 1, name: 'Engineering Block', x: 52, y: 38, aqi: 156, color: '#ea580c' },
-    { id: 2, name: 'Sports Ground', x: 72, y: 28, aqi: 92, color: '#d97706' },
-    { id: 3, name: 'Hostel Campus', x: 40, y: 62, aqi: 45, color: '#16a34a' },
-    { id: 4, name: 'Main Building', x: 56, y: 50, aqi: 118, color: '#ea580c' },
-    { id: 5, name: 'Vidyavihar Stn', x: 65, y: 70, aqi: 118, color: '#d97706' },
-    { id: 6, name: 'Kurla Station', x: 45, y: 78, aqi: 142, color: '#ea580c' },
-];
 
 const legendItems = [
     { label: 'Good (0–50)', color: '#16a34a' },

@@ -9,24 +9,6 @@ interface Message {
     isTyping?: boolean;
 }
 
-const INITIAL_MESSAGES: Message[] = [
-    {
-        id: 1,
-        role: 'assistant',
-        content: 'Hello. I am the Trinetra AI Health Assistant. I monitor air quality data across the Somaiya Vidyavihar campus and provide contextual health advisories.\n\nThe current campus AQI is 115 (Moderate). How can I assist you today?',
-    },
-    {
-        id: 2,
-        role: 'user',
-        content: 'I have an outdoor sports practice at the engineering ground at 5 PM. Should I reschedule?',
-    },
-    {
-        id: 3,
-        role: 'assistant',
-        content: 'Based on current predictive models, the air quality near the engineering ground is expected to deteriorate slightly by 5 PM due to evening traffic patterns.',
-        hasCard: true,
-    },
-];
 
 const AQIResponseCard = () => (
     <>
@@ -55,7 +37,7 @@ const AQIResponseCard = () => (
 );
 
 export const AIAssistantPage = () => {
-    const [messages, setMessages] = useState<Message[]>(INITIAL_MESSAGES);
+    const [messages, setMessages] = useState<Message[]>([]);
     const [inputVal, setInputVal] = useState('');
     const [isTyping, setIsTyping] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);

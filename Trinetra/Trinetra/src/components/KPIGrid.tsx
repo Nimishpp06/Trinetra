@@ -161,19 +161,6 @@ const HumidityCard = ({ data }: { data: KPIData }) => (
 );
 
 // ─── MAIN KPI GRID ───
-const kpiData: KPIData = {
-    overallAQI: 112,
-    aqiStatus: 'Moderate',
-    high24h: 145,
-    low24h: 68,
-    pm25: 45.2,
-    pm25Change: '12% vs yesterday',
-    temperature: 31.5,
-    temperatureChange: 'Steady',
-    humidity: 68,
-    humidityChange: '-5% vs yesterday',
-    realFeel: 33.2,
-};
 
 interface KPIGridProps {
     tempUnit?: 'C' | 'F';
@@ -221,10 +208,6 @@ export const KPIGrid = ({ tempUnit = 'C' }: KPIGridProps) => {
 
             {/* KPI cards */}
             <div className="kpi-grid">
-                <AQICard data={kpiData} />
-                <PM25Card data={kpiData} />
-                <TemperatureCard data={kpiData} tempUnit={tempUnit} />
-                <HumidityCard data={kpiData} />
             </div>
         </>
     );

@@ -6,49 +6,6 @@ import {
     ReferenceLine
 } from 'recharts';
 
-// ─── MOCK DATA ───
-const aqiTrendData = [
-    { time: '6AM', aqi: 58 },
-    { time: '8AM', aqi: 72 },
-    { time: '10AM', aqi: 95 },
-    { time: '12PM', aqi: 130 },
-    { time: '2PM', aqi: 118 },
-    { time: '4PM', aqi: 142 },
-    { time: '6PM', aqi: 156 },
-    { time: '8PM', aqi: 145 },
-    { time: '10PM', aqi: 122 },
-    { time: 'Now', aqi: 112 },
-    { time: '+2H', aqi: 128, forecast: true },
-    { time: '+4H', aqi: 135, forecast: true },
-];
-
-const pollutantData = [
-    { name: 'PM2.5', value: 45, color: '#9b1c1c' },
-    { name: 'PM10', value: 25, color: '#d97706' },
-    { name: 'O3', value: 15, color: '#ca8a04' },
-    { name: 'NO2', value: 15, color: '#16a34a' },
-];
-
-const locationCompData = [
-    { location: 'Eng Block', aqi: 156 },
-    { location: 'Kurla Stn', aqi: 142 },
-    { location: 'Vidyavihar', aqi: 118 },
-    { location: 'Sports Gnd', aqi: 92 },
-    { location: 'Hostel', aqi: 45 },
-];
-
-const scatterData = [
-    { temp: 28, humidity: 75, aqi: 80 },
-    { temp: 30, humidity: 68, aqi: 95 },
-    { temp: 31.5, humidity: 68, aqi: 112 },
-    { temp: 33, humidity: 60, aqi: 128 },
-    { temp: 35, humidity: 55, aqi: 142 },
-    { temp: 29, humidity: 80, aqi: 70 },
-    { temp: 27, humidity: 82, aqi: 62 },
-    { temp: 32, humidity: 62, aqi: 118 },
-];
-
-const parameters = ['AQI', 'PM2.5', 'PM10', 'Temp/Humidity'];
 
 // Custom tooltip
 const AQITooltip = ({ active, payload, label }: any) => {
