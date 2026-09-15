@@ -43,3 +43,4 @@ htmlcov/
 .pytest_cache/
 # Firmware secrets
 firmware/trinetra_esp32/config.h
+opencode.json
