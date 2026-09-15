@@ -21,6 +21,9 @@ ml/models/
 *.pkl
 *.h5
 
+# Build output
+Trinetra/Trinetra/dist/
+
 # IDE
 .vscode/
 .idea/
@@ -41,6 +44,7 @@ Thumbs.db
 .coverage
 htmlcov/
 .pytest_cache/
+
 # Firmware secrets
 firmware/trinetra_esp32/config.h
 opencode.json

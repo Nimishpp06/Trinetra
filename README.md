@@ -15,7 +15,7 @@ Real-time air quality monitoring system for Somaiya Vidyavihar campus using ESP3
 
 ## Tech Stack
 
-- **Frontend:** React, TypeScript, Vite, Recharts, Leaflet, Tailwind
+- **Frontend:** React, TypeScript, Vite, Recharts, Leaflet
 - **Backend:** FastAPI (Python)
 - **ML:** Scikit-learn (RF), Keras/PyTorch (LSTM)
 - **Database:** Supabase (PostgreSQL + Realtime)
