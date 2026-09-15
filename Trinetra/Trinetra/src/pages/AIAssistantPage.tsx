@@ -1,52 +1,61 @@
 import { useState, useRef, useEffect } from 'react';
 import { Zap, Shield, Plus, Mic, Send, User } from 'lucide-react';
+import { postQuestion } from '../services/api';
+import { useData } from '../context/DataContext';
 
 interface Message {
     id: number;
     role: 'assistant' | 'user';
     content: string;
     hasCard?: boolean;
-    isTyping?: boolean;
+    forecastAqi?: number;
 }
 
-
-const AQIResponseCard = () => (
-    <>
-        <div className="ai-forecast-card">
-            <div className="ai-forecast-card__label">
-                <Zap size={14} style={{ color: '#9b1c1c' }} />
-                Forecasted AQI (5:00 PM)
+const AQIResponseCard = ({ aqi }: { aqi?: number }) => {
+    if (!aqi) return null;
+    const status = aqi <= 50 ? 'Good' : aqi <= 100 ? 'Moderate' : aqi <= 200 ? 'Poor' : 'Unhealthy';
+    return (
+        <>
+            <div className="ai-forecast-card">
+                <div className="ai-forecast-card__label">
+                    <Zap size={14} style={{ color: '#9b1c1c' }} />
+                    Current AQI Reading
+                </div>
+                <div className="ai-forecast-card__value">
+                    {aqi}
+                    <span className={`status-badge status-badge--${status.toLowerCase()}`} style={{ fontSize: 10, padding: '3px 8px' }}>
+                        {status.toUpperCase()}
+                    </span>
+                </div>
             </div>
-            <div className="ai-forecast-card__value">
-                152
-                <span className="status-badge status-badge--unhealthy" style={{ fontSize: 10, padding: '3px 8px' }}>UNHEALTHY</span>
+            <div className="ai-health-advisory">
+                <div className="ai-health-advisory__title">
+                    <Shield size={14} />
+                    Health Advisory
+                </div>
+                <ul>
+                    {aqi > 200 && <li>Avoid prolonged outdoor exertion. Sensitive groups should remain indoors.</li>}
+                    {aqi > 100 && aqi <= 200 && <li>Reduce prolonged outdoor exertion. Consider indoor alternatives.</li>}
+                    {aqi > 50 && aqi <= 100 && <li>Unusually sensitive people should consider reducing prolonged outdoor exertion.</li>}
+                    {aqi <= 50 && <li>Air quality is satisfactory. Enjoy outdoor activities.</li>}
+                </ul>
             </div>
-        </div>
-        <div className="ai-health-advisory">
-            <div className="ai-health-advisory__title">
-                <Shield size={14} />
-                Health Advisory
-            </div>
-            <ul>
-                <li>Intense physical activity outdoors is not recommended for sensitive groups.</li>
-                <li>Consider moving practice indoors to the campus sports complex if possible.</li>
-                <li>If outdoors, reduce exertion levels and stay hydrated.</li>
-            </ul>
-        </div>
-    </>
-);
+        </>
+    );
+};
 
 export const AIAssistantPage = () => {
     const [messages, setMessages] = useState<Message[]>([]);
     const [inputVal, setInputVal] = useState('');
     const [isTyping, setIsTyping] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const { stationReadings } = useData();
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages, isTyping]);
 
-    const handleSend = () => {
+    const handleSend = async () => {
         const text = inputVal.trim();
         if (!text) return;
 
@@ -55,15 +64,31 @@ export const AIAssistantPage = () => {
         setInputVal('');
         setIsTyping(true);
 
-        setTimeout(() => {
-            setIsTyping(false);
+        try {
+            const activeStation = stationReadings.find(sr => sr.latest_reading);
+            const response = await postQuestion({
+                question: text,
+                station_id: activeStation?.id || undefined,
+            });
+
             const reply: Message = {
                 id: Date.now() + 1,
                 role: 'assistant',
-                content: `Based on current sensor readings and predictive analysis, I can provide guidance on your query about "${text}". The campus AQI is currently at 112 (Moderate). For specific health recommendations, please consult with the campus health center.`,
+                content: response.answer,
+                hasCard: activeStation?.latest_reading?.aqi != null,
+                forecastAqi: activeStation?.latest_reading?.aqi ?? undefined,
             };
             setMessages(prev => [...prev, reply]);
-        }, 2000);
+        } catch {
+            const reply: Message = {
+                id: Date.now() + 1,
+                role: 'assistant',
+                content: 'Sorry, I encountered an error connecting to the AI service. Please check that the API server is running and try again.',
+            };
+            setMessages(prev => [...prev, reply]);
+        } finally {
+            setIsTyping(false);
+        }
     };
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -76,7 +101,6 @@ export const AIAssistantPage = () => {
     return (
         <div className="ai-page">
             <div className="ai-layout">
-                {/* Chat main area */}
                 <div className="ai-main">
                     <div className="ai-main__header">
                         <div>
@@ -93,11 +117,25 @@ export const AIAssistantPage = () => {
                     </div>
 
                     <div className="ai-messages">
+                        {messages.length === 0 && (
+                            <div className="ai-message">
+                                <div className="ai-message__avatar">
+                                    <svg viewBox="0 0 48 48" fill="none" style={{ width: 22, height: 22 }}>
+                                        <circle cx="24" cy="24" r="22" fill="#1a1a1a" />
+                                        <ellipse cx="24" cy="24" rx="12" ry="8" fill="none" stroke="white" strokeWidth="1.5" />
+                                        <circle cx="24" cy="24" r="4" fill="none" stroke="white" strokeWidth="1.5" />
+                                        <circle cx="24" cy="24" r="1.5" fill="white" />
+                                    </svg>
+                                </div>
+                                <div className="ai-message__bubble">
+                                    Hello! I'm Trinetra's AI Health Assistant. Ask me about air quality, pollution sources, health advice, or forecasts for the Somaiya Vidyavihar campus.
+                                    {'\n\n'}Supported languages: English, Hindi, Marathi, Gujarati, Tamil, Telugu, Bengali, Kannada, Malayalam, Punjabi, Odia.
+                                </div>
+                            </div>
+                        )}
+
                         {messages.map(msg => (
-                            <div
-                                key={msg.id}
-                                className={`ai-message${msg.role === 'user' ? ' ai-message--user' : ''}`}
-                            >
+                            <div key={msg.id} className={`ai-message${msg.role === 'user' ? ' ai-message--user' : ''}`}>
                                 <div className="ai-message__avatar">
                                     {msg.role === 'assistant' ? (
                                         <svg viewBox="0 0 48 48" fill="none" style={{ width: 22, height: 22 }}>
@@ -117,7 +155,7 @@ export const AIAssistantPage = () => {
                                             {i < msg.content.split('\n').length - 1 && <br />}
                                         </span>
                                     ))}
-                                    {msg.hasCard && <AQIResponseCard />}
+                                    {msg.hasCard && <AQIResponseCard aqi={msg.forecastAqi} />}
                                 </div>
                             </div>
                         ))}

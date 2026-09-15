@@ -1,22 +1,22 @@
-import { LayoutGrid, TrendingUp, Map, Bot, History, AlertCircle } from 'lucide-react';
+import { LayoutGrid, TrendingUp, Map, Bot, History, Clock } from 'lucide-react';
 
-export type Page = 'dashboard' | 'analytics' | 'map' | 'ai' | 'historical' | 'profile' | 'login';
+export type Page = 'dashboard' | 'analytics' | 'map' | 'forecast' | 'ai' | 'historical';
 
 interface SidebarProps {
     activePage: Page;
     onNavigate: (page: Page) => void;
-    onReportIssue: () => void;
 }
 
 const navItems: { id: Page; label: string; icon: React.ElementType }[] = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutGrid },
     { id: 'analytics', label: 'Analytics', icon: TrendingUp },
     { id: 'map', label: 'Live Map', icon: Map },
+    { id: 'forecast', label: 'Forecast', icon: Clock },
     { id: 'ai', label: 'AI Assistant', icon: Bot },
     { id: 'historical', label: 'Historical Data', icon: History },
 ];
 
-export const Sidebar = ({ activePage, onNavigate, onReportIssue }: SidebarProps) => {
+export const Sidebar = ({ activePage, onNavigate }: SidebarProps) => {
     return (
         <aside className="sidebar">
             <div className="sidebar__header">
@@ -42,13 +42,6 @@ export const Sidebar = ({ activePage, onNavigate, onReportIssue }: SidebarProps)
                     );
                 })}
             </nav>
-
-            <div className="sidebar__footer">
-                <button className="report-issue-btn" onClick={onReportIssue}>
-                    <AlertCircle size={15} />
-                    <span>Report Issue</span>
-                </button>
-            </div>
         </aside>
     );
 };

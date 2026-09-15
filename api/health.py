@@ -5,11 +5,6 @@ Health check endpoint for ML models.
 
 from fastapi import FastAPI
 from pathlib import Path
-import sys
-import os
-
-sys.path.insert(0, str(Path(__file__).parent.parent / "ml"))
-import joblib
 
 app = FastAPI()
 
@@ -17,21 +12,20 @@ app = FastAPI()
 @app.get("/api/health")
 async def health():
     base_dir = Path(__file__).parent.parent
-    model_dir = base_dir / "models"
-    
-    rf_exists = (model_dir / "rf_source_classifier_global.joblib").exists()
-    lstm_exists = (model_dir / "lstm_aqi_forecaster.h5").exists()
-    scaler_exists = (model_dir / "lstm_scaler.pkl").exists()
-    
+    trained_dir = base_dir / "models" / "trained"
+
+    rf_model = trained_dir / "rf_pollution_source" / "model.joblib"
+    lstm_model = trained_dir / "lstm_aq" / "forecaster.h5"
+    scaler = trained_dir / "lstm_aq" / "scaler.pkl"
+
     return {
-        "status": "healthy" if rf_exists else "models_not_trained",
+        "status": "healthy" if rf_model.exists() else "models_not_trained",
         "models": {
-            "random_forest": rf_exists,
-            "lstm": lstm_exists,
-            "scaler": scaler_exists
+            "random_forest": rf_model.exists(),
+            "lstm": lstm_model.exists(),
+            "scaler": scaler.exists(),
         },
-        "model_dir": str(model_dir),
-        "message": "Run 'python ml/train_all.py' to train models" if not rf_exists else "Models ready"
+        "message": "Models ready" if rf_model.exists() else "Run 'python ml/train_all.py' to train models",
     }
 
 

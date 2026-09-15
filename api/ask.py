@@ -4,15 +4,14 @@ AI Health Assistant endpoint using Gemini with RAG.
 
 Input:
 {
-    "question": "हवा कैसी है?",
-    "station_id": "station_01",
-    "language": "hi"
+    "question": "how is the air quality?",
+    "station_id": "station_01"
 }
 
 Output:
 {
-    "answer": "वर्तमान AQI 57 है...",
-    "language": "hi",
+    "answer": "The current AQI at Engineering Block is 57...",
+    "language": "en",
     "sources": ["station_01 latest reading", "24h trend"]
 }
 """
@@ -21,21 +20,16 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 from typing import Optional, List
 import os
-import sys
-from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).parent.parent / "ml"))
+from datetime import datetime, timedelta, timezone
 
 app = FastAPI(title="Trinetra AI Assistant", version="1.0.0")
 
-# Indian language codes supported by Gemini
 INDIAN_LANGUAGES = {
     "hi": "Hindi", "mr": "Marathi", "gu": "Gujarati", "ta": "Tamil",
     "te": "Telugu", "bn": "Bengali", "kn": "Kannada", "ml": "Malayalam",
-    "pa": "Punjabi", "or": "Odia", "en": "English"
+    "pa": "Punjabi", "or": "Odia", "en": "English",
 }
 
-# System prompt with guardrails
 SYSTEM_PROMPT = """You are Trinetra, an air quality health assistant for Somaiya Vidyavihar campus.
 
 STRICT RULES:
@@ -49,13 +43,134 @@ STRICT RULES:
 REFUSAL TEMPLATE: "I can only answer questions about air quality at Trinetra monitoring stations. Please ask about current AQI, pollution sources, forecasts, or health advice related to air quality."
 
 CONTEXT INJECTION:
-The user's question will be accompanied by relevant sensor data from Supabase. Use ONLY this data."""
+The user's question will be accompanied by relevant sensor data from Supabase. Use ONLY this data to form your answer. Do not make up data."""
 
-try:
-    import google.generativeai as genai
-    GEMINI_AVAILABLE = True
-except ImportError:
-    GEMINI_AVAILABLE = False
+
+def detect_language(text: str) -> str:
+    if any('\u0900' <= c <= '\u097F' for c in text):
+        return "hi"
+    if any('\u0A80' <= c <= '\u0AFF' for c in text):
+        return "gu"
+    if any('\u0B80' <= c <= '\u0BFF' for c in text):
+        return "ta"
+    if any('\u0C00' <= c <= '\u0C7F' for c in text):
+        return "te"
+    if any('\u0980' <= c <= '\u09FF' for c in text):
+        return "bn"
+    if any('\u0C80' <= c <= '\u0CFF' for c in text):
+        return "kn"
+    if any('\u0D00' <= c <= '\u0D7F' for c in text):
+        return "ml"
+    if any('\u0A00' <= c <= '\u0A7F' for c in text):
+        return "pa"
+    if any('\u0B00' <= c <= '\u0B7F' for c in text):
+        return "or"
+    return "en"
+
+
+def get_supabase_client():
+    url = os.environ.get("SUPABASE_URL")
+    key = os.environ.get("SUPABASE_ANON_KEY")
+    if not url or not key:
+        return None
+    try:
+        from supabase import create_client
+        return create_client(url, key)
+    except Exception:
+        return None
+
+
+def build_context(station_id: Optional[str] = None) -> str:
+    sb = get_supabase_client()
+    if sb is None:
+        return "No sensor data available (Supabase not configured)."
+
+    lines = []
+
+    try:
+        if station_id:
+            resp = sb.table("stations").select("*").eq("id", station_id).execute()
+            if resp.data:
+                s = resp.data[0]
+                lines.append(f"Station: {s['name']}")
+
+            resp = sb.table("readings") \
+                .select("*") \
+                .eq("station_id", station_id) \
+                .order("recorded_at", desc=True) \
+                .limit(1) \
+                .execute()
+            if resp.data:
+                r = resp.data[0]
+                lines.append(f"Latest reading: temp={r.get('temperature')}C, humidity={r.get('humidity')}%, "
+                             f"pm25={r.get('pm25_ug_m3')}ug/m3, aqi={r.get('aqi')}, "
+                             f"category={r.get('air_quality_category')}, "
+                             f"at {r.get('recorded_at')}")
+
+            cutoff = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
+            resp = sb.table("readings") \
+                .select("aqi, recorded_at") \
+                .eq("station_id", station_id) \
+                .gte("recorded_at", cutoff) \
+                .order("recorded_at", desc=False) \
+                .limit(2880) \
+                .execute()
+            if resp.data:
+                aqi_vals = [r["aqi"] for r in resp.data if r.get("aqi") is not None]
+                if aqi_vals:
+                    avg = sum(aqi_vals) / len(aqi_vals)
+                    high = max(aqi_vals)
+                    low = min(aqi_vals)
+                    lines.append(f"24h AQI trend: avg={avg:.0f}, high={high}, low={low}, readings={len(aqi_vals)}")
+        else:
+            resp = sb.table("readings") \
+                .select("station_id, aqi, pm25_ug_m3, temperature, humidity, air_quality_category, recorded_at") \
+                .order("recorded_at", desc=True) \
+                .limit(20) \
+                .execute()
+            if resp.data:
+                lines.append("Latest readings across all stations:")
+                for r in resp.data[:10]:
+                    lines.append(f"  {r.get('station_id')}: aqi={r.get('aqi')}, pm25={r.get('pm25_ug_m3')}, "
+                                 f"temp={r.get('temperature')}C, category={r.get('air_quality_category')}")
+
+        # Station list
+        resp = sb.table("stations").select("id, name").execute()
+        if resp.data:
+            lines.append(f"\nActive stations ({len(resp.data)}): " +
+                         ", ".join(s['name'] for s in resp.data[:19]))
+
+    except Exception as e:
+        lines.append(f"Error fetching sensor data: {e}")
+
+    return "\n".join(lines) if lines else "No sensor data available yet."
+
+
+def query_gemini(question: str, context: str, language: str) -> str:
+    api_key = os.environ.get("GEMINI_API_KEY")
+    if not api_key:
+        return ("I cannot answer right now because the Gemini API key is not configured. "
+                "Please set GEMINI_API_KEY in the environment.")
+
+    try:
+        import google.generativeai as genai
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel(
+            model_name="gemini-1.5-flash",
+            system_instruction=SYSTEM_PROMPT,
+        )
+        prompt = f"""Context from Trinetra sensor network:
+{context}
+
+User question: {question}
+
+Respond in language code: {language}. Keep the response concise and actionable. Cite specific sensor values."""
+        response = model.generate_content(prompt)
+        return response.text
+    except ImportError:
+        return "Gemini library not installed. Install with: pip install google-generativeai"
+    except Exception as e:
+        return f"Error querying AI: {e}"
 
 
 class AskRequest(BaseModel):
@@ -71,46 +186,27 @@ class AskResponse(BaseModel):
     refused: bool = False
 
 
-def detect_language(text: str) -> str:
-    """Simple language detection - in production use langdetect or fasttext."""
-    # Check for Devanagari (Hindi/Marathi)
-    if any('\u0900' <= c <= '\u097F' for c in text):
-        return "hi"
-    # Check for Gujarati
-    if any('\u0A80' <= c <= '\u0AFF' for c in text):
-        return "gu"
-    # Check for Tamil
-    if any('\u0B80' <= c <= '\u0BFF' for c in text):
-        return "ta"
-    # Check for Telugu
-    if any('\u0C00' <= c <= '\u0C7F' for c in text):
-        return "te"
-    # Check for Bengali
-    if any('\u0980' <= c <= '\u09FF' for c in text):
-        return "bn"
-    # Check for Kannada
-    if any('\u0C80' <= c <= '\u0CFF' for c in text):
-        return "kn"
-    # Check for Malayalam
-    if any('\u0D00' <= c <= '\u0D7F' for c in text):
-        return "ml"
-    # Check for Punjabi (Gurmukhi)
-    if any('\u0A00' <= c <= '\u0A7F' for c in text):
-        return "pa"
-    # Check for Odia
-    if any('\u0B00' <= c <= '\u0B7F' for c in text):
-        return "or"
-    return "en"
+@app.post("/api/ask", response_model=AskResponse)
+async def ask(request: AskRequest):
+    lang = request.language or detect_language(request.question)
 
+    context = build_context(request.station_id)
+    sources = ["Supabase sensor readings"]
+    if request.station_id:
+        sources.insert(0, f"station {request.station_id}")
 
+    answer = query_gemini(request.question, context, lang)
 
+    refusal_keywords = ["i can only", "i cannot answer", "not about air quality",
+                        "cannot help with that", "out of my scope"]
+    refused = any(kw in answer.lower() for kw in refusal_keywords)
 
-def build_context(station_id: str) -> dict:
-    """Fetch relevant context from Supabase. Placeholder - implement with Supabase client.
-    
-    TODO: Replace with actual Supabase query instead of mock data.
-    """
-    pass
+    return AskResponse(
+        answer=answer,
+        language=lang,
+        sources=sources,
+        refused=refused,
+    )
 
 
 handler = app

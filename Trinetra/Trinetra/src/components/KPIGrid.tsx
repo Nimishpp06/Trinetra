@@ -1,20 +1,6 @@
 import { RefreshCw, Wind, Thermometer, Droplets, TrendingUp, Clock } from 'lucide-react';
-import { useState, useEffect } from 'react';
-
-// ─── TYPES ───
-interface KPIData {
-    overallAQI: number;
-    aqiStatus: string;
-    high24h: number;
-    low24h: number;
-    pm25: number;
-    pm25Change: string;
-    temperature: number;
-    temperatureChange: string;
-    humidity: number;
-    humidityChange: string;
-    realFeel: number;
-}
+import { useState, useEffect, useMemo } from 'react';
+import { useData } from '../context/DataContext';
 
 // ─── AQI RING ───
 interface AQIRingProps {
@@ -25,7 +11,6 @@ interface AQIRingProps {
 
 const AQI_RING_RADIUS = 68;
 const CIRCUMFERENCE = 2 * Math.PI * AQI_RING_RADIUS;
-// We span ~270 degrees of the circle (leaving 90-degree gap at bottom-left)
 const SWEEP_DEGREES = 270;
 const SWEEP_FRACTION = SWEEP_DEGREES / 360;
 
@@ -40,6 +25,14 @@ function getAQIColor(status: string): string {
     }
 }
 
+function aqiToStatus(aqi: number): string {
+    if (aqi <= 50) return 'Good';
+    if (aqi <= 100) return 'Moderate';
+    if (aqi <= 200) return 'Poor';
+    if (aqi <= 300) return 'Unhealthy';
+    return 'Severe';
+}
+
 const AQIRing = ({ value, status, max = 300 }: AQIRingProps) => {
     const color = getAQIColor(status);
     const progress = Math.min(value / max, 1);
@@ -49,7 +42,6 @@ const AQIRing = ({ value, status, max = 300 }: AQIRingProps) => {
     return (
         <div className="aqi-ring">
             <svg viewBox="0 0 160 160" xmlns="http://www.w3.org/2000/svg">
-                {/* Track */}
                 <circle
                     cx="80" cy="80" r={AQI_RING_RADIUS}
                     fill="none"
@@ -58,7 +50,6 @@ const AQIRing = ({ value, status, max = 300 }: AQIRingProps) => {
                     strokeLinecap="round"
                     strokeDasharray={`${CIRCUMFERENCE * SWEEP_FRACTION} ${CIRCUMFERENCE}`}
                 />
-                {/* Progress */}
                 <circle
                     cx="80" cy="80" r={AQI_RING_RADIUS}
                     fill="none"
@@ -77,116 +68,127 @@ const AQIRing = ({ value, status, max = 300 }: AQIRingProps) => {
     );
 };
 
-// ─── AQI CARD ───
-const AQICard = ({ data }: { data: KPIData }) => (
+// ─── CARDS ───
+const AQICard = ({ aqi, status, high, low }: { aqi: number; status: string; high: number; low: number }) => (
     <div className="kpi-card">
         <div className="kpi-card__header">
             <span className="kpi-card__title">Overall Campus AQI</span>
         </div>
         <div className="aqi-card__ring-container">
-            <AQIRing value={data.overallAQI} status={data.aqiStatus} />
+            <AQIRing value={aqi} status={status} />
         </div>
         <div className="aqi-card__divider" />
         <div className="aqi-card__stats">
             <div className="aqi-stat">
                 <div className="aqi-stat__label">24H High</div>
-                <div className="aqi-stat__value">{data.high24h}</div>
+                <div className="aqi-stat__value">{high}</div>
             </div>
             <div className="aqi-stat">
                 <div className="aqi-stat__label">24H Low</div>
-                <div className="aqi-stat__value">{data.low24h}</div>
+                <div className="aqi-stat__value">{low}</div>
             </div>
         </div>
     </div>
 );
 
-// ─── PM2.5 CARD ───
-const PM25Card = ({ data }: { data: KPIData }) => (
+const PM25Card = ({ value }: { value: number }) => (
     <div className="kpi-card">
         <div className="kpi-card__header">
             <span className="kpi-card__title">PM2.5</span>
             <Wind className="kpi-card__icon" size={18} />
         </div>
         <div className="simple-kpi__value">
-            <span className="simple-kpi__number">{data.pm25}</span>
-            <span className="simple-kpi__unit">µg/m³</span>
+            <span className="simple-kpi__number">{value}</span>
+            <span className="simple-kpi__unit">ug/m3</span>
         </div>
         <div className="simple-kpi__change change--up">
             <TrendingUp size={13} />
-            <span>+{data.pm25Change}</span>
+            <span>live</span>
         </div>
     </div>
 );
 
-// ─── TEMP UNIT CONVERTER ───
-const convertTemp = (c: number, unit: 'C' | 'F') => {
-    return unit === 'F' ? parseFloat((c * 9 / 5 + 32).toFixed(1)) : c;
-};
-
-// ─── TEMPERATURE CARD ───
-const TemperatureCard = ({ data, tempUnit }: { data: KPIData; tempUnit: 'C' | 'F' }) => (
+const TemperatureCard = ({ value }: { value: number }) => (
     <div className="kpi-card">
         <div className="kpi-card__header">
             <span className="kpi-card__title">Temperature</span>
             <Thermometer className="kpi-card__icon" size={18} />
         </div>
         <div className="simple-kpi__value">
-            <span className="simple-kpi__number">{convertTemp(data.temperature, tempUnit)}</span>
-            <span className="simple-kpi__unit">°{tempUnit}</span>
+            <span className="simple-kpi__number">{value}</span>
+            <span className="simple-kpi__unit">deg C</span>
         </div>
-        <div className="simple-kpi__change change--steady" style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
-            <span>→ {data.temperatureChange}</span>
-            <span style={{ fontSize: '11px', color: 'green', fontWeight: 500 }}>
-                Real Feel {convertTemp(data.realFeel, tempUnit)}°{tempUnit}
-            </span>
+        <div className="simple-kpi__change change--steady">
+            <span>Real Feel {value}deg C</span>
         </div>
     </div>
 );
 
-// ─── HUMIDITY CARD ───
-const HumidityCard = ({ data }: { data: KPIData }) => (
+const HumidityCard = ({ value }: { value: number }) => (
     <div className="kpi-card">
         <div className="kpi-card__header">
             <span className="kpi-card__title">Humidity</span>
             <Droplets className="kpi-card__icon" size={18} />
         </div>
         <div className="simple-kpi__value">
-            <span className="simple-kpi__number">{data.humidity}</span>
+            <span className="simple-kpi__number">{value}</span>
             <span className="simple-kpi__unit">%</span>
         </div>
         <div className="simple-kpi__change change--down">
-            <span>↘ {data.humidityChange}</span>
+            <span>live reading</span>
         </div>
     </div>
 );
 
 // ─── MAIN KPI GRID ───
-
-interface KPIGridProps {
-    tempUnit?: 'C' | 'F';
-}
-
-export const KPIGrid = ({ tempUnit = 'C' }: KPIGridProps) => {
+export const KPIGrid = () => {
+    const { stationReadings, recentReadings, loading, refreshData } = useData();
     const [lastUpdated, setLastUpdated] = useState('Just now');
     const [currentTime, setCurrentTime] = useState('');
 
     useEffect(() => {
         const updateClock = () => {
-            const now = new Date();
-            setCurrentTime(now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+            setCurrentTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
         };
         updateClock();
         const timer = setInterval(updateClock, 1000);
         return () => clearInterval(timer);
     }, []);
 
+    const kpis = useMemo(() => {
+        const withReadings = stationReadings.filter(sr => sr.latest_reading);
+        if (withReadings.length === 0) {
+            return { aqi: 0, status: 'No Data', pm25: 0, temp: 0, humidity: 0, high: 0, low: 0 };
+        }
+
+        const aqiValues = withReadings.map(sr => sr.latest_reading!.aqi ?? 0).filter(v => v > 0);
+        const pm25Values = withReadings.map(sr => sr.latest_reading!.pm25_ug_m3 ?? 0).filter(v => v > 0);
+        const tempValues = withReadings.map(sr => sr.latest_reading!.temperature ?? 0).filter(v => v > 0);
+        const humValues = withReadings.map(sr => sr.latest_reading!.humidity ?? 0).filter(v => v > 0);
+
+        const avg = (arr: number[]) => arr.length ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : 0;
+
+        // 24h high/low from recent readings
+        const recentAqi = recentReadings.map(r => r.aqi ?? 0).filter(v => v > 0);
+
+        return {
+            aqi: avg(aqiValues),
+            status: aqiToStatus(avg(aqiValues)),
+            pm25: avg(pm25Values),
+            temp: avg(tempValues),
+            humidity: avg(humValues),
+            high: recentAqi.length ? Math.max(...recentAqi) : avg(aqiValues),
+            low: recentAqi.length ? Math.min(...recentAqi) : avg(aqiValues),
+        };
+    }, [stationReadings, recentReadings]);
+
     const handleRefresh = () => {
+        refreshData();
         setLastUpdated('Just now');
     };
 
     return (
         <>
-            {/* Page title */}
             <div className="dashboard-header">
                 <div className="dashboard-header__left">
                     <h1>Campus Air Quality Overview</h1>
@@ -201,13 +203,16 @@ export const KPIGrid = ({ tempUnit = 'C' }: KPIGridProps) => {
                     )}
                     <button className="last-updated-pill" onClick={handleRefresh} style={{ marginTop: 0 }}>
                         <RefreshCw size={12} />
-                        <span>Last updated: {lastUpdated}</span>
+                        <span>{loading ? 'Loading...' : `Last updated: ${lastUpdated}`}</span>
                     </button>
                 </div>
             </div>
 
-            {/* KPI cards */}
             <div className="kpi-grid">
+                <AQICard aqi={kpis.aqi} status={kpis.status} high={kpis.high} low={kpis.low} />
+                <PM25Card value={kpis.pm25} />
+                <TemperatureCard value={kpis.temp} />
+                <HumidityCard value={kpis.humidity} />
             </div>
         </>
     );

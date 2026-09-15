@@ -1,155 +1,145 @@
-import { useState, useRef, useEffect } from 'react';
-import { Plus, Minus, Crosshair, Layers, Play, Pause } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { MapContainer, TileLayer, CircleMarker, Popup, useMap } from 'react-leaflet';
+import { useData } from '../context/DataContext';
+import 'leaflet/dist/leaflet.css';
 
+function getAQIColor(aqi: number): string {
+    if (aqi <= 50) return '#16a34a';
+    if (aqi <= 100) return '#d97706';
+    if (aqi <= 200) return '#ea580c';
+    if (aqi <= 300) return '#dc2626';
+    return '#7f1d1d';
+}
+
+function getAQIRadius(aqi: number): number {
+    if (aqi <= 50) return 10;
+    if (aqi <= 100) return 14;
+    if (aqi <= 200) return 18;
+    if (aqi <= 300) return 22;
+    return 26;
+}
+
+function aqiToStatus(aqi: number): string {
+    if (aqi <= 50) return 'Good';
+    if (aqi <= 100) return 'Moderate';
+    if (aqi <= 200) return 'Poor';
+    if (aqi <= 300) return 'Unhealthy';
+    return 'Severe';
+}
+
+const CAMPUS_CENTER: [number, number] = [19.0740, 72.8860];
 
 const legendItems = [
-    { label: 'Good (0–50)', color: '#16a34a' },
-    { label: 'Moderate (51–100)', color: '#d97706' },
-    { label: 'Poor (101–200)', color: '#ea580c' },
-    { label: 'Unhealthy (201–300)', color: '#dc2626' },
+    { label: 'Good (0-50)', color: '#16a34a' },
+    { label: 'Moderate (51-100)', color: '#d97706' },
+    { label: 'Poor (101-200)', color: '#ea580c' },
+    { label: 'Unhealthy (201-300)', color: '#dc2626' },
     { label: 'Severe (301+)', color: '#7f1d1d' },
 ];
 
-// Draw heatmap on canvas
-function drawHeatmap(canvas: HTMLCanvasElement, sensorList: { id: number; name: string; x: number; y: number; aqi: number; color: string }[]) {
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    const w = canvas.width;
-    const h = canvas.height;
-
-    ctx.clearRect(0, 0, w, h);
-
-    // Base map color
-    ctx.fillStyle = '#dde1e8';
-    ctx.fillRect(0, 0, w, h);
-
-    // Draw roads (simple grid)
-    ctx.strokeStyle = '#c8cdd8';
-    ctx.lineWidth = 2;
-    for (let i = 0; i < w; i += 80) {
-        ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, h); ctx.stroke();
-    }
-    for (let i = 0; i < h; i += 80) {
-        ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(w, i); ctx.stroke();
-    }
-
-    // Green campus area
-    ctx.fillStyle = 'rgba(134, 187, 134, 0.35)';
-    ctx.beginPath();
-    ctx.ellipse(w * 0.55, h * 0.48, w * 0.30, h * 0.35, -0.3, 0, Math.PI * 2);
-    ctx.fill();
-
-    // AQI heat blobs using radial gradients
-    sensorList.forEach(sensor => {
-        const cx = (sensor.x / 100) * w;
-        const cy = (sensor.y / 100) * h;
-        const radius = Math.min(w, h) * 0.18;
-
-        let color = '22, 163, 74'; // good green
-        if (sensor.aqi > 200) color = '220, 38, 38';
-        else if (sensor.aqi > 100) color = '234, 88, 12';
-        else if (sensor.aqi > 50) color = '217, 119, 6';
-
-        const grd = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
-        grd.addColorStop(0, `rgba(${color}, 0.55)`);
-        grd.addColorStop(0.5, `rgba(${color}, 0.25)`);
-        grd.addColorStop(1, `rgba(${color}, 0)`);
-
-        ctx.beginPath();
-        ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-        ctx.fillStyle = grd;
-        ctx.fill();
-    });
+function MapRecenter({ center }: { center: [number, number] }) {
+    const map = useMap();
+    useMemo(() => { map.setView(center, 16); }, [map, center]);
+    return null;
 }
 
 export const LiveMapPage = () => {
-    const canvasRef = useRef<HTMLCanvasElement>(null);
-    const containerRef = useRef<HTMLDivElement>(null);
-    const [isPlaying, setIsPlaying] = useState(false);
-    const [sliderValue, setSliderValue] = useState(85);
-    const [tooltip, setTooltip] = useState<{ name: string; aqi: number; x: number; y: number } | null>(null);
+    const { stationReadings } = useData();
+    const [selectedStation, setSelectedStation] = useState<string | null>(null);
 
-    useEffect(() => {
-        const canvas = canvasRef.current;
-        const container = containerRef.current;
-        if (!canvas || !container) return;
+    const stationsWithData = useMemo(() => {
+        return stationReadings
+            .filter(sr => sr.latest_reading)
+            .map(sr => ({
+                id: sr.id,
+                name: sr.name,
+                lat: sr.lat,
+                lng: sr.lng,
+                aqi: sr.latest_reading!.aqi ?? 0,
+                temp: sr.latest_reading!.temperature,
+                humidity: sr.latest_reading!.humidity,
+                pm25: sr.latest_reading!.pm25_ug_m3,
+                source: sr.latest_reading!.source,
+                thermalComfort: sr.latest_reading!.thermal_comfort,
+                recorded_at: sr.latest_reading!.processed_at,
+            }));
+    }, [stationReadings]);
 
-        const resize = () => {
-            canvas.width = container.clientWidth;
-            canvas.height = container.clientHeight;
-            drawHeatmap(canvas, sensors);
-        };
-
-        resize();
-        window.addEventListener('resize', resize);
-        return () => window.removeEventListener('resize', resize);
-    }, []);
-
-    const timeLabel = () => {
-        const base = 6 + Math.floor((sliderValue / 100) * 18);
-        return `${base}:${sliderValue % 2 === 0 ? '00' : '30'} PM`;
-    };
+    const allStations = useMemo(() => {
+        return stationReadings.map(sr => ({
+            id: sr.id,
+            name: sr.name,
+            lat: sr.lat,
+            lng: sr.lng,
+            aqi: sr.latest_reading?.aqi ?? 0,
+            temp: sr.latest_reading?.temperature,
+            humidity: sr.latest_reading?.humidity,
+            pm25: sr.latest_reading?.pm25_ug_m3,
+            hasData: !!sr.latest_reading,
+        }));
+    }, [stationReadings]);
 
     return (
         <div className="map-page">
-            <div className="map-container" ref={containerRef}>
-                <canvas ref={canvasRef} className="map-canvas" />
+            <div className="map-container" style={{ position: 'relative', height: '100%', width: '100%' }}>
+                <MapContainer
+                    center={CAMPUS_CENTER}
+                    zoom={16}
+                    style={{ height: '100%', width: '100%' }}
+                    zoomControl={false}
+                    attributionControl={false}
+                >
+                    <TileLayer
+                        url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+                    />
+                    <MapRecenter center={CAMPUS_CENTER} />
+
+                    {allStations.map(station => {
+                        const color = station.hasData ? getAQIColor(station.aqi) : '#9ca3af';
+                        const radius = station.hasData ? getAQIRadius(station.aqi) : 8;
+                        return (
+                            <CircleMarker
+                                key={station.id}
+                                center={[station.lat, station.lng]}
+                                radius={radius}
+                                pathOptions={{
+                                    color: color,
+                                    fillColor: color,
+                                    fillOpacity: 0.6,
+                                    weight: selectedStation === station.id ? 3 : 1,
+                                }}
+                                eventHandlers={{
+                                    click: () => setSelectedStation(station.id),
+                                }}
+                            >
+                                <Popup>
+                                    <div style={{ fontSize: 13, minWidth: 160 }}>
+                                        <div style={{ fontWeight: 700, marginBottom: 4 }}>{station.name}</div>
+                                        {station.hasData ? (
+                                            <>
+                                                <div>AQI: <b style={{ color }}>{station.aqi}</b> ({aqiToStatus(station.aqi)})</div>
+                                                {station.temp && <div>Temp: {station.temp}C</div>}
+                                                {station.humidity && <div>Humidity: {station.humidity}%</div>}
+                                                {station.pm25 && <div>PM2.5: {station.pm25} ug/m3</div>}
+                                                {station.source && <div>Source: {station.source}</div>}
+                                                {station.thermalComfort && <div>Comfort: {station.thermalComfort}</div>}
+                                            </>
+                                        ) : (
+                                            <div style={{ color: '#9ca3af' }}>No readings yet</div>
+                                        )}
+                                    </div>
+                                </Popup>
+                            </CircleMarker>
+                        );
+                    })}
+                </MapContainer>
 
                 {/* Campus label */}
                 <div className="map-header-label">Somaiya Vihar Campus, Mumbai</div>
 
-                {/* Sensor dots */}
-                {sensors.map(sensor => (
-                    <div
-                        key={sensor.id}
-                        className="sensor-dot"
-                        style={{
-                            left: `${sensor.x}%`,
-                            top: `${sensor.y}%`,
-                            width: 14,
-                            height: 14,
-                            background: sensor.color,
-                            transform: 'translate(-50%, -50%)',
-                        }}
-                        onMouseEnter={(e) => {
-                            const rect = e.currentTarget.getBoundingClientRect();
-                            setTooltip({ name: sensor.name, aqi: sensor.aqi, x: rect.left, y: rect.top });
-                        }}
-                        onMouseLeave={() => setTooltip(null)}
-                    />
-                ))}
-
-                {/* Tooltip */}
-                {tooltip && (
-                    <div style={{
-                        position: 'fixed',
-                        left: tooltip.x + 18,
-                        top: tooltip.y - 10,
-                        background: '#fff',
-                        border: '1px solid #e5e7eb',
-                        borderRadius: 8,
-                        padding: '8px 12px',
-                        fontSize: 12,
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
-                        zIndex: 20,
-                        pointerEvents: 'none',
-                    }}>
-                        <div style={{ fontWeight: 600, marginBottom: 2 }}>{tooltip.name}</div>
-                        <div style={{ color: '#6b7280' }}>AQI: <b style={{ color: '#ea580c' }}>{tooltip.aqi}</b></div>
-                    </div>
-                )}
-
-                {/* Map controls */}
-                <div className="map-controls">
-                    <button className="map-ctrl-btn" title="Zoom in"><Plus size={16} /></button>
-                    <button className="map-ctrl-btn" title="Zoom out"><Minus size={16} /></button>
-                    <button className="map-ctrl-btn" title="My location"><Crosshair size={16} /></button>
-                    <button className="map-ctrl-btn" title="Layers"><Layers size={16} /></button>
-                </div>
-
                 {/* AQI Legend */}
                 <div className="map-legend">
-                    <div className="map-legend__title">AQI Intensity Legend</div>
+                    <div className="map-legend__title">AQI Legend</div>
                     {legendItems.map(item => (
                         <div key={item.label} className="map-legend__item">
                             <div className="map-legend__dot" style={{ background: item.color }} />
@@ -158,27 +148,13 @@ export const LiveMapPage = () => {
                     ))}
                 </div>
 
-                {/* Playback bar */}
-                <div className="map-playback">
-                    <span className="playback__title">Historical Playback</span>
-                    <button
-                        className="playback__play-btn"
-                        onClick={() => setIsPlaying(p => !p)}
-                    >
-                        {isPlaying ? <Pause size={13} /> : <Play size={13} />}
-                    </button>
-                    <div className="playback__slider-wrap">
-                        <input
-                            type="range"
-                            className="playback__slider"
-                            min={0}
-                            max={100}
-                            value={sliderValue}
-                            onChange={e => setSliderValue(Number(e.target.value))}
-                        />
-                    </div>
-                    <span className="playback__time">{timeLabel()}</span>
-                    <span className="playback__live-badge">Live</span>
+                {/* Station count */}
+                <div style={{
+                    position: 'absolute', bottom: 80, left: 12, zIndex: 1000,
+                    background: 'rgba(255,255,255,0.95)', borderRadius: 8, padding: '6px 12px',
+                    fontSize: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                }}>
+                    {stationsWithData.length} / {allStations.length} stations active
                 </div>
             </div>
         </div>
