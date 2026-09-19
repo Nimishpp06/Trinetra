@@ -16,7 +16,7 @@ Output:
 }
 """
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from pydantic import BaseModel, Field
 from typing import Optional, List
 import os
@@ -94,25 +94,26 @@ def build_context(station_id: Optional[str] = None) -> str:
                 s = resp.data[0]
                 lines.append(f"Station: {s['name']}")
 
-            resp = sb.table("readings") \
+            resp = sb.table("processed_readings") \
                 .select("*") \
                 .eq("station_id", station_id) \
-                .order("recorded_at", desc=True) \
+                .order("processed_at", desc=True) \
                 .limit(1) \
                 .execute()
             if resp.data:
                 r = resp.data[0]
                 lines.append(f"Latest reading: temp={r.get('temperature')}C, humidity={r.get('humidity')}%, "
-                             f"pm25={r.get('pm25_ug_m3')}ug/m3, aqi={r.get('aqi')}, "
-                             f"category={r.get('air_quality_category')}, "
-                             f"at {r.get('recorded_at')}")
+                             f"pm25={r.get('pm25_ug_m3')}ug/m3, pm10={r.get('pm10_ug_m3')}ug/m3, "
+                             f"aqi={r.get('aqi')}, source={r.get('source')}, "
+                             f"thermal_comfort={r.get('thermal_comfort')}, "
+                             f"at {r.get('processed_at')}")
 
             cutoff = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
-            resp = sb.table("readings") \
-                .select("aqi, recorded_at") \
+            resp = sb.table("processed_readings") \
+                .select("aqi, processed_at") \
                 .eq("station_id", station_id) \
-                .gte("recorded_at", cutoff) \
-                .order("recorded_at", desc=False) \
+                .gte("processed_at", cutoff) \
+                .order("processed_at", desc=False) \
                 .limit(2880) \
                 .execute()
             if resp.data:
@@ -123,18 +124,18 @@ def build_context(station_id: Optional[str] = None) -> str:
                     low = min(aqi_vals)
                     lines.append(f"24h AQI trend: avg={avg:.0f}, high={high}, low={low}, readings={len(aqi_vals)}")
         else:
-            resp = sb.table("readings") \
-                .select("station_id, aqi, pm25_ug_m3, temperature, humidity, air_quality_category, recorded_at") \
-                .order("recorded_at", desc=True) \
+            resp = sb.table("processed_readings") \
+                .select("station_id, aqi, pm25_ug_m3, temperature, humidity, source, thermal_comfort, processed_at") \
+                .order("processed_at", desc=True) \
                 .limit(20) \
                 .execute()
             if resp.data:
                 lines.append("Latest readings across all stations:")
                 for r in resp.data[:10]:
                     lines.append(f"  {r.get('station_id')}: aqi={r.get('aqi')}, pm25={r.get('pm25_ug_m3')}, "
-                                 f"temp={r.get('temperature')}C, category={r.get('air_quality_category')}")
+                                 f"temp={r.get('temperature')}C, source={r.get('source')}, "
+                                 f"comfort={r.get('thermal_comfort')}")
 
-        # Station list
         resp = sb.table("stations").select("id, name").execute()
         if resp.data:
             lines.append(f"\nActive stations ({len(resp.data)}): " +
