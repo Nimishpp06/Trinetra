@@ -1,18 +1,19 @@
 TODO — What's Left
 ==================
 
-Setup:
-1. Run supabase/migrate.sql in Supabase SQL Editor
-2. Put Supabase URL + anon key in Trinetra/Trinetra/.env
-3. Start API: cd api && pip install -r requirements.txt && uvicorn predict:app --reload
-4. Start frontend: cd Trinetra/Trinetra && npm run dev
+Done:
+- Supabase SQL migrated (tables created)
+- API keys configured (.env files)
+- ML models trained
+- dotenv loading added to all API files
 
-Testing:
-5. Test ESP32 data flow: POST to /api/predict, then GET /api/process, then check dashboard
-6. Test forecast: GET /api/forecast?station_id=station_01&hours=1
-7. Test AI chat: ask "what is the air quality?" on the AI Assistant page
+Next:
+1. Start frontend: cd Trinetra/Trinetra && npm run dev
+2. Start API: cd api && uvicorn main:app --reload --port 8000
+3. Test health: open http://localhost:8000/api/health
+4. Test AI chat: open http://localhost:5173 → AI Assistant tab
 
 Later:
-8. Add authentication (login, signup, Google OAuth)
-9. Add more stations via Supabase SQL (insert into stations)
-10. Deploy to Vercel
+5. Add more stations via Supabase SQL
+6. Login / signup / Google auth
+7. Deploy to Vercel

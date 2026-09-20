@@ -1,44 +1,36 @@
-# Vercel Serverless Functions for Trinetra
+# Trinetra API
 
-This folder contains Python serverless functions deployed to Vercel.
+FastAPI backend for ML processing, forecasts, and AI assistant.
+
+## Local Development
+
+```bash
+cd api
+pip install -r requirements.txt
+uvicorn main:app --reload --port 8000
+```
+
+Environment variables auto-load from project root `.env` file.
+
+## Endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/health` | Check if ML models loaded |
+| POST | `/api/predict` | ML inference (source + AQI) |
+| POST | `/api/process` | Process raw readings → processed_readings |
+| GET | `/api/forecast?station_id=station_01&hours=1` | LSTM multi-step forecast |
+| POST | `/api/ask` | Gemini AI chatbot |
 
 ## Structure
 
 ```
 api/
-├── predict.py      # POST /api/predict - ML inference endpoint
-├── ask.py          # POST /api/ask - AI Assistant endpoint  
-├── health.py       # GET /api/health - Model health check
-└── requirements.txt # Python dependencies for Vercel
-```
-
-## Deployment
-
-1. Add to `vercel.json`:
-```json
-{
-  "rewrites": [
-    { "source": "/api/:path*", "destination": "/api/:path*" }
-  ],
-  "functions": {
-    "api/*.py": {
-      "runtime": "python3.11"
-    }
-  }
-}
-```
-
-2. Set environment variables in Vercel dashboard:
-- `SUPABASE_URL`
-- `SUPABASE_ANON_KEY`
-- `GEMINI_API_KEY`
-
-## Local Development
-
-```bash
-# Install dependencies
-pip install -r api/requirements.txt
-
-# Run locally with Vercel CLI
-vercel dev
+├── main.py        # Local dev entry (combines all routes)
+├── predict.py     # ML inference endpoint
+├── process.py     # ML processing pipeline
+├── forecast.py    # Multi-step LSTM forecast
+├── ask.py         # Gemini AI assistant
+├── health.py      # Model health check
+└── requirements.txt
 ```

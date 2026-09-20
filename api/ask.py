@@ -21,6 +21,10 @@ from pydantic import BaseModel, Field
 from typing import Optional, List
 import os
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
+
+from dotenv import load_dotenv
+load_dotenv(Path(__file__).parent.parent / ".env")
 
 app = FastAPI(title="Trinetra AI Assistant", version="1.0.0")
 
