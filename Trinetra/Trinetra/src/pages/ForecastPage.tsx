@@ -133,8 +133,15 @@ export default function ForecastPage() {
             )}
 
             {error && (
-                <div className="chart-card" style={{ borderColor: '#fecaca', background: '#fef2f2' }}>
-                    <p style={{ color: '#dc2626', fontSize: 13 }}>{error}</p>
+                <div className="chart-card" style={{ borderColor: '#fecaca', background: '#fef2f2', padding: 32, textAlign: 'center' }}>
+                    <div style={{ fontSize: 36, marginBottom: 12 }}>📡</div>
+                    <p style={{ color: '#dc2626', fontSize: 14, fontWeight: 600, marginBottom: 6 }}>
+                        No sensor data available yet
+                    </p>
+                    <p style={{ color: '#9ca3af', fontSize: 12.5, lineHeight: 1.6 }}>
+                        Forecast needs at least 12 readings from your ESP32 devices.<br />
+                        Make sure your sensors are connected and sending data to Supabase.
+                    </p>
                 </div>
             )}
 

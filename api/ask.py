@@ -161,7 +161,7 @@ def query_gemini(question: str, context: str, language: str) -> str:
         import google.generativeai as genai
         genai.configure(api_key=api_key)
         model = genai.GenerativeModel(
-            model_name="gemini-2.5-flash",
+            model_name="gemini-3.6-flash",
             system_instruction=SYSTEM_PROMPT,
         )
         prompt = f"""Context from Trinetra sensor network:
