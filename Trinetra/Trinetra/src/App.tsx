@@ -2,6 +2,7 @@ import { useState } from 'react';
 import './index.css';
 import './App.css';
 import { DataProvider } from './context/DataContext';
+import { ChatProvider } from './context/ChatContext';
 import { Header } from './components/Header';
 import { Sidebar } from './components/Sidebar';
 import type { Page } from './components/Sidebar';
@@ -37,19 +38,21 @@ function App() {
 
   return (
     <DataProvider>
-      <div className="app-layout">
-        <Header />
-        <div className="app-body">
-          <Sidebar
-            activePage={activePage}
-            onNavigate={setActivePage}
-          />
-          <div className="main-content">
-            {renderPage()}
+      <ChatProvider>
+        <div className="app-layout">
+          <Header />
+          <div className="app-body">
+            <Sidebar
+              activePage={activePage}
+              onNavigate={setActivePage}
+            />
+            <div className="main-content">
+              {renderPage()}
+            </div>
           </div>
+          <Footer />
         </div>
-        <Footer />
-      </div>
+      </ChatProvider>
     </DataProvider>
   );
 }

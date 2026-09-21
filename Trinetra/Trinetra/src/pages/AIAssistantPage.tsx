@@ -2,14 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Zap, Shield, Plus, Mic, Send, User } from 'lucide-react';
 import { postQuestion } from '../services/api';
 import { useData } from '../context/DataContext';
-
-interface Message {
-    id: number;
-    role: 'assistant' | 'user';
-    content: string;
-    hasCard?: boolean;
-    forecastAqi?: number;
-}
+import { useChat } from '../context/ChatContext';
 
 const AQIResponseCard = ({ aqi }: { aqi?: number }) => {
     if (!aqi) return null;
@@ -45,9 +38,8 @@ const AQIResponseCard = ({ aqi }: { aqi?: number }) => {
 };
 
 export const AIAssistantPage = () => {
-    const [messages, setMessages] = useState<Message[]>([]);
+    const { messages, addMessage, clearMessages, isLoading: isTyping, setIsLoading } = useChat();
     const [inputVal, setInputVal] = useState('');
-    const [isTyping, setIsTyping] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const { stationReadings } = useData();
 
@@ -59,10 +51,9 @@ export const AIAssistantPage = () => {
         const text = inputVal.trim();
         if (!text) return;
 
-        const userMsg: Message = { id: Date.now(), role: 'user', content: text };
-        setMessages(prev => [...prev, userMsg]);
+        addMessage({ role: 'user', content: text });
         setInputVal('');
-        setIsTyping(true);
+        setIsLoading(true);
 
         try {
             const activeStation = stationReadings.find(sr => sr.latest_reading);
@@ -71,23 +62,19 @@ export const AIAssistantPage = () => {
                 station_id: activeStation?.id || undefined,
             });
 
-            const reply: Message = {
-                id: Date.now() + 1,
+            addMessage({
                 role: 'assistant',
                 content: response.answer,
                 hasCard: activeStation?.latest_reading?.aqi != null,
                 forecastAqi: activeStation?.latest_reading?.aqi ?? undefined,
-            };
-            setMessages(prev => [...prev, reply]);
+            });
         } catch {
-            const reply: Message = {
-                id: Date.now() + 1,
+            addMessage({
                 role: 'assistant',
                 content: 'Sorry, I encountered an error connecting to the AI service. Please check that the API server is running and try again.',
-            };
-            setMessages(prev => [...prev, reply]);
+            });
         } finally {
-            setIsTyping(false);
+            setIsLoading(false);
         }
     };
 

@@ -158,22 +158,26 @@ def query_gemini(question: str, context: str, language: str) -> str:
                 "Please set GEMINI_API_KEY in the environment.")
 
     try:
-        import google.generativeai as genai
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel(
-            model_name="gemini-3.6-flash",
-            system_instruction=SYSTEM_PROMPT,
-        )
+        from google import genai
+        client = genai.Client(api_key=api_key)
+
         prompt = f"""Context from Trinetra sensor network:
 {context}
 
 User question: {question}
 
 Respond in language code: {language}. Keep the response concise and actionable. Cite specific sensor values."""
-        response = model.generate_content(prompt)
+
+        response = client.models.generate_content(
+            model="gemini-3.6-flash",
+            contents=prompt,
+            config=genai.types.GenerateContentConfig(
+                system_instruction=SYSTEM_PROMPT,
+            ),
+        )
         return response.text
     except ImportError:
-        return "Gemini library not installed. Install with: pip install google-generativeai"
+        return "Gemini library not installed. Install with: pip install google-genai"
     except Exception as e:
         return f"Error querying AI: {e}"
 

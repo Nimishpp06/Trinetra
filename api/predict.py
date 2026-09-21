@@ -81,13 +81,16 @@ def get_models():
             lstm_path = _find_model(base_dir, "lstm_aq", "forecaster.h5")
             scaler_path = _find_model(base_dir, "lstm_aq", "scaler.pkl")
             if lstm_path and scaler_path:
-                os.environ["KERAS_BACKEND"] = "torch"
                 _lstm_model = load_model(str(lstm_path), compile=False)
                 _lstm_scaler = joblib.load(scaler_path)
         except Exception:
             pass
 
     return _rf_model, _rf_encoder, _lstm_model, _lstm_scaler
+
+
+# Preload models at module level so they're ready when the first request arrives
+get_models()
 
 
 def compute_aqi(pm25: float) -> float:

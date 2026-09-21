@@ -18,9 +18,11 @@ Response:
 }
 """
 
+import os
+os.environ["KERAS_BACKEND"] = "torch"  # Must be set before any keras import
+
 from fastapi import FastAPI, Query, HTTPException
 from typing import Optional, List
-import os
 import sys
 from pathlib import Path
 
@@ -57,8 +59,6 @@ def load_lstm_models():
     if _lstm_models:
         return _lstm_models
 
-    import os as _os
-    _os.environ["KERAS_BACKEND"] = "torch"
     from keras.models import load_model
 
     base = Path(__file__).parent.parent
@@ -82,6 +82,10 @@ def load_lstm_models():
             pass
 
     return _lstm_models
+
+
+# Preload models at module level so they're ready when the first request arrives
+load_lstm_models()
 
 
 def forecast_multi(model, scaler, last_window: np.ndarray, n_steps: int) -> List[float]:
