@@ -21,6 +21,9 @@ ml/models/
 *.pkl
 *.h5
 
+# Node
+node_modules/
+
 # Build output
 Trinetra/Trinetra/dist/
 

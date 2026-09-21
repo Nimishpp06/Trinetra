@@ -103,7 +103,7 @@ def get_supabase():
         return None
 
 
-@app.post("/api/process")
+@app.post("/process")
 async def process_readings(
     station_id: Optional[str] = Query(None),
     limit: int = Query(50, ge=1, le=200),

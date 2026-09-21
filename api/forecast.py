@@ -75,7 +75,7 @@ def load_lstm_models():
             model_path = _find_model(base, cfg["subdir"], "forecaster.h5")
             scaler_path = _find_model(base, cfg["subdir"], "scaler.pkl")
             if model_path and scaler_path:
-                model = load_model(str(model_path))
+                model = load_model(str(model_path), compile=False)
                 scaler = joblib.load(scaler_path)
                 _lstm_models[key] = {"model": model, "scaler": scaler, "cfg": cfg}
         except Exception:
@@ -124,7 +124,7 @@ def get_supabase():
         return None
 
 
-@app.get("/api/forecast")
+@app.get("/forecast")
 async def forecast(
     station_id: str = Query("station_01"),
     hours: float = Query(1, ge=0.25, le=24),

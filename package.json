@@ -1,0 +1,13 @@
+{
+  "name": "trinetra-project",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently -n api,web -c blue,green \"npm run dev:api\" \"npm run dev:web\"",
+    "dev:api": "cd api && python -m uvicorn main:app --reload --port 8000",
+    "dev:web": "cd Trinetra\\Trinetra && npm run dev",
+    "install:all": "cd api && pip install -r requirements.txt && cd .. && cd Trinetra\\Trinetra && npm install"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  }
+}

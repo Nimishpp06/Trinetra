@@ -34,6 +34,8 @@ load_dotenv(Path(__file__).parent.parent / ".env")
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "ml"))
 
+os.environ["KERAS_BACKEND"] = "torch"
+
 import joblib
 import numpy as np
 from keras.models import load_model
@@ -80,7 +82,7 @@ def get_models():
             scaler_path = _find_model(base_dir, "lstm_aq", "scaler.pkl")
             if lstm_path and scaler_path:
                 os.environ["KERAS_BACKEND"] = "torch"
-                _lstm_model = load_model(str(lstm_path))
+                _lstm_model = load_model(str(lstm_path), compile=False)
                 _lstm_scaler = joblib.load(scaler_path)
         except Exception:
             pass
@@ -124,7 +126,7 @@ class PredictResponse(BaseModel):
     model_version: str = "global"
 
 
-@app.post("/api/predict", response_model=PredictResponse)
+@app.post("/predict", response_model=PredictResponse)
 async def predict(request: PredictRequest):
     rf, le, lstm, scaler = get_models()
 
@@ -159,7 +161,7 @@ async def predict(request: PredictRequest):
     )
 
 
-@app.get("/api/health")
+@app.get("/health")
 async def health():
     rf, le, lstm, scaler = get_models()
     return {

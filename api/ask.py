@@ -161,7 +161,7 @@ def query_gemini(question: str, context: str, language: str) -> str:
         import google.generativeai as genai
         genai.configure(api_key=api_key)
         model = genai.GenerativeModel(
-            model_name="gemini-1.5-flash",
+            model_name="gemini-2.5-flash",
             system_instruction=SYSTEM_PROMPT,
         )
         prompt = f"""Context from Trinetra sensor network:
@@ -191,7 +191,7 @@ class AskResponse(BaseModel):
     refused: bool = False
 
 
-@app.post("/api/ask", response_model=AskResponse)
+@app.post("/ask", response_model=AskResponse)
 async def ask(request: AskRequest):
     lang = request.language or detect_language(request.question)
 
