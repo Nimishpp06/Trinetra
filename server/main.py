@@ -1,14 +1,15 @@
 """
 Trinetra API — Local dev entry point
-Run: cd api && uvicorn main:app --reload --port 8000
+Run: cd server && python -m uvicorn main:app --reload --port 8000
 """
 
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pathlib import Path
 
 from dotenv import load_dotenv
-load_dotenv(Path(__file__).parent.parent / ".env")
+load_dotenv(Path(__file__).parent.parent / ".env")  # no-op if .env is missing (HF Space uses env vars)
 
 from predict import app as predict_app
 from process import app as process_app
@@ -17,9 +18,17 @@ from ask import app as ask_app
 
 app = FastAPI(title="Trinetra API", version="1.0.0")
 
+ALLOWED_ORIGINS = [
+    o.strip()
+    for o in os.environ.get(
+        "ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:3000"
+    ).split(",")
+    if o.strip()
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

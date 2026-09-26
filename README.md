@@ -26,4 +26,4 @@ Real-time air quality monitoring system for Somaiya Vidyavihar campus using ESP3
 1. Run `supabase/migrate.sql` in Supabase SQL Editor
 2. Add Supabase URL + anon key to `Trinetra/Trinetra/.env`
 3. `cd Trinetra/Trinetra && npm install && npm run dev`
-4. `cd api && pip install -r requirements.txt && uvicorn predict:app --reload`
+4. `cd server && pip install -r requirements.txt && uvicorn predict:app --reload`

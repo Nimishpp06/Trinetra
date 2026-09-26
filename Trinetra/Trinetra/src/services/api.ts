@@ -64,18 +64,28 @@ export async function getAllRecentReadings(hours: number = 24): Promise<Processe
 
 // ── API endpoints ──
 
+// Static hosts answer missing API routes with an HTML page (status 200),
+// which would otherwise blow up inside res.json() with "Unexpected token '<'".
+function parseJson<T>(res: Response, unavailableMessage: string): Promise<T> {
+  const contentType = res.headers.get('content-type')
+  if (!contentType || !contentType.includes('application/json')) {
+    throw new Error(unavailableMessage)
+  }
+  return res.json() as Promise<T>
+}
+
 export async function processReadings(stationId?: string): Promise<{ processed: number }> {
   const params = new URLSearchParams()
   if (stationId) params.set('station_id', stationId)
   const res = await fetch(`${API_BASE}/process?${params}`, { method: 'POST' })
   if (!res.ok) throw new Error(`Process failed: ${res.status}`)
-  return res.json()
+  return parseJson<{ processed: number }>(res, 'Processing unavailable in this build')
 }
 
 export async function getForecast(stationId: string, hours: number = 1): Promise<ForecastResponse> {
   const res = await fetch(`${API_BASE}/forecast?station_id=${stationId}&hours=${hours}`)
   if (!res.ok) throw new Error(`Forecast failed: ${res.status}`)
-  return res.json()
+  return parseJson<ForecastResponse>(res, 'Forecast unavailable in this build')
 }
 
 export async function postQuestion(req: AskRequest): Promise<AskResponse> {
@@ -85,5 +95,5 @@ export async function postQuestion(req: AskRequest): Promise<AskResponse> {
     body: JSON.stringify(req),
   })
   if (!res.ok) throw new Error(`AI request failed: ${res.status}`)
-  return res.json()
+  return parseJson<AskResponse>(res, 'AI assistant unavailable in this build')
 }

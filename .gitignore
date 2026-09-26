@@ -14,12 +14,8 @@ __pycache__/
 data/raw/
 data/processed/*.csv
 
-# Models (trained models - not committed)
-models/
+# Models (trained models - committed for Docker image)
 ml/models/
-*.joblib
-*.pkl
-*.h5
 
 # Node
 node_modules/

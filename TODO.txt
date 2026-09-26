@@ -9,7 +9,7 @@ Done:
 
 Next:
 1. Start frontend: cd Trinetra/Trinetra && npm run dev
-2. Start API: cd api && uvicorn main:app --reload --port 8000
+2. Start API: cd server && uvicorn main:app --reload --port 8000
 3. Test health: open http://localhost:8000/api/health
 4. Test AI chat: open http://localhost:5173 → AI Assistant tab
 

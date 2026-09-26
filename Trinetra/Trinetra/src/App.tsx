@@ -1,11 +1,19 @@
-import { useState } from 'react';
 import './index.css';
 import './App.css';
+import {
+  BrowserRouter,
+  Navigate,
+  Outlet,
+  Route,
+  Routes,
+  useLocation,
+} from 'react-router-dom';
 import { DataProvider } from './context/DataContext';
 import { ChatProvider } from './context/ChatContext';
+import { AuthProvider } from './context/AuthContext';
+import { ProtectedRoute } from './components/ProtectedRoute';
 import { Header } from './components/Header';
-import { Sidebar } from './components/Sidebar';
-import type { Page } from './components/Sidebar';
+import { Sidebar, pageFromPath } from './components/Sidebar';
 import { Footer } from './components/Footer';
 import { DashboardPage } from './pages/DashboardPage';
 import { AnalyticsPage } from './pages/AnalyticsPage';
@@ -13,47 +21,58 @@ import { LiveMapPage } from './pages/LiveMapPage';
 import ForecastPage from './pages/ForecastPage';
 import { AIAssistantPage } from './pages/AIAssistantPage';
 import { HistoricalDataPage } from './pages/HistoricalDataPage';
+import { LoginPage } from './pages/LoginPage';
+import { AuthCallback } from './pages/AuthCallback';
 
-function App() {
-  const [activePage, setActivePage] = useState<Page>('dashboard');
-
-  const renderPage = () => {
-    switch (activePage) {
-      case 'dashboard':
-        return <DashboardPage onNavigate={setActivePage} />;
-      case 'analytics':
-        return <AnalyticsPage />;
-      case 'map':
-        return <LiveMapPage />;
-      case 'forecast':
-        return <ForecastPage />;
-      case 'ai':
-        return <AIAssistantPage />;
-      case 'historical':
-        return <HistoricalDataPage />;
-      default:
-        return <DashboardPage onNavigate={setActivePage} />;
-    }
-  };
+function AppLayout() {
+  const { pathname } = useLocation();
+  const activePage = pageFromPath(pathname);
 
   return (
-    <DataProvider>
-      <ChatProvider>
-        <div className="app-layout">
-          <Header />
-          <div className="app-body">
-            <Sidebar
-              activePage={activePage}
-              onNavigate={setActivePage}
-            />
-            <div className="main-content">
-              {renderPage()}
-            </div>
-          </div>
-          <Footer />
+    <div className="app-layout">
+      <Header />
+      <div className="app-body">
+        <Sidebar activePage={activePage} />
+        <div className="main-content">
+          <Outlet />
         </div>
-      </ChatProvider>
-    </DataProvider>
+      </div>
+      <Footer />
+    </div>
+  );
+}
+
+function App() {
+  return (
+    <BrowserRouter>
+      <AuthProvider>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/auth/callback" element={<AuthCallback />} />
+
+          <Route element={<ProtectedRoute />}>
+            <Route
+              element={
+                <DataProvider>
+                  <ChatProvider>
+                    <AppLayout />
+                  </ChatProvider>
+                </DataProvider>
+              }
+            >
+              <Route index element={<Navigate to="/dashboard" replace />} />
+              <Route path="dashboard" element={<DashboardPage />} />
+              <Route path="analytics" element={<AnalyticsPage />} />
+              <Route path="map" element={<LiveMapPage />} />
+              <Route path="forecast" element={<ForecastPage />} />
+              <Route path="ai" element={<AIAssistantPage />} />
+              <Route path="historical" element={<HistoricalDataPage />} />
+              <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            </Route>
+          </Route>
+        </Routes>
+      </AuthProvider>
+    </BrowserRouter>
   );
 }
 

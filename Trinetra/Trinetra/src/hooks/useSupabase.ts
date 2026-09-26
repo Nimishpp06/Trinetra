@@ -9,11 +9,12 @@ export function useStationHistory(stationId: string | null, hours: number = 24) 
 
   useEffect(() => {
     if (!stationId) { setLoading(false); return }
+    const sid: string = stationId
     let active = true
     async function load() {
       try {
         setLoading(true)
-        const data = await getStationHistory(stationId, hours)
+        const data = await getStationHistory(sid, hours)
         if (active) setReadings(data)
       } catch (e) {
         if (active) setError(e instanceof Error ? e.message : 'Failed to load')

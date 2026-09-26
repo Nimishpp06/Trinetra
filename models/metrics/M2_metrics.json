@@ -1,0 +1,97 @@
+{
+  "model_key": "M2",
+  "target": "Thermal_Comfort",
+  "features": [
+    "Temperature_C",
+    "Humidity_Pct",
+    "Air_Quality_MQ135",
+    "Dust_Density_ug_m3"
+  ],
+  "classes": [
+    "Comfortable",
+    "Hot & Humid"
+  ],
+  "splits": {
+    "train": {
+      "accuracy": 1.0,
+      "f1_weighted": 1.0,
+      "f1_macro": 1.0,
+      "f1_per_class": {
+        "Comfortable": 1.0,
+        "Hot & Humid": 1.0
+      },
+      "precision_per_class": {
+        "Comfortable": 1.0,
+        "Hot & Humid": 1.0
+      },
+      "recall_per_class": {
+        "Comfortable": 1.0,
+        "Hot & Humid": 1.0
+      },
+      "confusion_matrix": [
+        [
+          2000,
+          0
+        ],
+        [
+          0,
+          14402
+        ]
+      ]
+    },
+    "val": {
+      "accuracy": 1.0,
+      "f1_weighted": 1.0,
+      "f1_macro": 1.0,
+      "f1_per_class": {
+        "Comfortable": 1.0,
+        "Hot & Humid": 1.0
+      },
+      "precision_per_class": {
+        "Comfortable": 1.0,
+        "Hot & Humid": 1.0
+      },
+      "recall_per_class": {
+        "Comfortable": 1.0,
+        "Hot & Humid": 1.0
+      },
+      "confusion_matrix": [
+        [
+          250,
+          0
+        ],
+        [
+          0,
+          1798
+        ]
+      ]
+    },
+    "test": {
+      "accuracy": 1.0,
+      "f1_weighted": 1.0,
+      "f1_macro": 1.0,
+      "f1_per_class": {
+        "Comfortable": 1.0,
+        "Hot & Humid": 1.0
+      },
+      "precision_per_class": {
+        "Comfortable": 1.0,
+        "Hot & Humid": 1.0
+      },
+      "recall_per_class": {
+        "Comfortable": 1.0,
+        "Hot & Humid": 1.0
+      },
+      "confusion_matrix": [
+        [
+          250,
+          0
+        ],
+        [
+          0,
+          1800
+        ]
+      ]
+    }
+  }
+}

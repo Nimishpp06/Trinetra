@@ -1,0 +1,18 @@
+# Keep the Docker build context small — the image only needs server/ and models/
+.git
+.github
+.opencode
+node_modules
+Trinetra
+data
+ml
+firmware
+supabase
+Miniproject (Somaiya AQI Datasets)
+demo_ml_training.ipynb
+**/__pycache__
+*.log
+
+# Never bake secrets into the image (HF Space env vars come from Space settings)
+.env
+.env.*

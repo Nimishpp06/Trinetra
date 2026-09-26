@@ -38,7 +38,7 @@ const AQIResponseCard = ({ aqi }: { aqi?: number }) => {
 };
 
 export const AIAssistantPage = () => {
-    const { messages, addMessage, clearMessages, isLoading: isTyping, setIsLoading } = useChat();
+    const { messages, addMessage, isLoading: isTyping, setIsLoading } = useChat();
     const [inputVal, setInputVal] = useState('');
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const { stationReadings } = useData();

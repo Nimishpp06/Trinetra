@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Clock, TrendingUp, ArrowUp, ArrowDown, Minus, Zap, AlertTriangle } from 'lucide-react';
+import { ArrowUp, ArrowDown, Minus, AlertTriangle } from 'lucide-react';
 import {
     LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
     ReferenceLine, AreaChart, Area
@@ -242,7 +242,7 @@ export default function ForecastPage() {
                                     <YAxis tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
                                     <Tooltip
                                         contentStyle={{ borderRadius: 8, border: '1px solid #e5e7eb', fontSize: 12 }}
-                                        formatter={(val: number) => [`${val} μg/m³`, 'PM2.5']}
+                                        formatter={val => [`${val} μg/m³`, 'PM2.5']}
                                     />
                                     <Line type="monotone" dataKey="pm25" stroke="#ea580c" strokeWidth={2}
                                         dot={{ r: 3, fill: '#ea580c', stroke: '#fff', strokeWidth: 2 }} name="PM2.5" />
@@ -264,7 +264,7 @@ export default function ForecastPage() {
                                     <YAxis tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
                                     <Tooltip
                                         contentStyle={{ borderRadius: 8, border: '1px solid #e5e7eb', fontSize: 12 }}
-                                        formatter={(val: number) => [`${val} μg/m³`, 'PM10']}
+                                        formatter={val => [`${val} μg/m³`, 'PM10']}
                                     />
                                     <Line type="monotone" dataKey="pm10" stroke="#d97706" strokeWidth={2}
                                         dot={{ r: 3, fill: '#d97706', stroke: '#fff', strokeWidth: 2 }} name="PM10" />
@@ -288,7 +288,7 @@ export default function ForecastPage() {
                                 <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
                                 <Tooltip
                                     contentStyle={{ borderRadius: 8, border: '1px solid #e5e7eb', fontSize: 12 }}
-                                    formatter={(val: number) => [`${val}°C`, 'Temperature']}
+                                    formatter={val => [`${val}°C`, 'Temperature']}
                                 />
                                 <Line type="monotone" dataKey="temp" stroke="#3b82f6" strokeWidth={2}
                                     dot={{ r: 3, fill: '#3b82f6', stroke: '#fff', strokeWidth: 2 }} name="Temp" />
@@ -314,8 +314,8 @@ export default function ForecastPage() {
 
 function ForecastCard({ label, current, predicted, unit, getStatus, getColor, delta }: {
     label: string;
-    current: number | undefined;
-    predicted: number | undefined;
+    current: number | null | undefined;
+    predicted: number | null | undefined;
     unit: string;
     getStatus: (v: number) => string;
     getColor: (v: number) => string;

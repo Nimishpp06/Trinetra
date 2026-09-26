@@ -1,0 +1,31 @@
+{
+  "model_key": "M6",
+  "target": "PM10_ug_m3",
+  "features": [
+    "Temperature_C",
+    "Humidity_Pct",
+    "Air_Quality_MQ135",
+    "Dust_Density_ug_m3"
+  ],
+  "window": 12,
+  "splits": {
+    "train": {
+      "rmse": 30.793790866207797,
+      "mae": 23.091660009973012,
+      "normalized_mae": 0.07018725069095978,
+      "n_samples": 16390
+    },
+    "val": {
+      "rmse": 29.509036479483587,
+      "mae": 22.31259200967533,
+      "normalized_mae": 0.06899759025000006,
+      "n_samples": 2049
+    },
+    "test": {
+      "rmse": 31.264950940758183,
+      "mae": 23.089920925438623,
+      "normalized_mae": 0.07458239521063537,
+      "n_samples": 2049
+    }
+  }
+}

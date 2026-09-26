@@ -5,7 +5,7 @@ FastAPI backend for ML processing, forecasts, and AI assistant.
 ## Local Development
 
 ```bash
-cd api
+cd server
 pip install -r requirements.txt
 uvicorn main:app --reload --port 8000
 ```
@@ -25,7 +25,7 @@ Environment variables auto-load from project root `.env` file.
 ## Structure
 
 ```
-api/
+server/
 ├── main.py        # Local dev entry (combines all routes)
 ├── predict.py     # ML inference endpoint
 ├── process.py     # ML processing pipeline

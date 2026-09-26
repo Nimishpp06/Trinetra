@@ -1,0 +1,165 @@
+{
+  "model_key": "M1",
+  "target": "pollution_source",
+  "features": [
+    "Temperature_C",
+    "Humidity_Pct",
+    "Air_Quality_MQ135",
+    "Dust_Density_ug_m3"
+  ],
+  "classes": [
+    "ambient",
+    "indoor",
+    "industrial",
+    "traffic"
+  ],
+  "splits": {
+    "train": {
+      "accuracy": 0.9634800634069016,
+      "f1_weighted": 0.9639675359453052,
+      "f1_macro": 0.9580384875129765,
+      "f1_per_class": {
+        "ambient": 0.9826903023983315,
+        "indoor": 0.9831204379562044,
+        "industrial": 0.9133462282398452,
+        "traffic": 0.9529969814575248
+      },
+      "precision_per_class": {
+        "ambient": 0.9839214867404469,
+        "indoor": 0.9867216117216118,
+        "industrial": 0.8523465703971119,
+        "traffic": 0.9877094972067039
+      },
+      "recall_per_class": {
+        "ambient": 0.9814621953759634,
+        "indoor": 0.9795454545454545,
+        "industrial": 0.98375,
+        "traffic": 0.9206415330139555
+      },
+      "confusion_matrix": [
+        [
+          4712,
+          42,
+          20,
+          27
+        ],
+        [
+          35,
+          4310,
+          46,
+          9
+        ],
+        [
+          7,
+          13,
+          2361,
+          19
+        ],
+        [
+          35,
+          3,
+          343,
+          4420
+        ]
+      ]
+    },
+    "val": {
+      "accuracy": 0.955078125,
+      "f1_weighted": 0.955817694217047,
+      "f1_macro": 0.9486987729010937,
+      "f1_per_class": {
+        "ambient": 0.9766277128547579,
+        "indoor": 0.9725776965265083,
+        "industrial": 0.8960244648318043,
+        "traffic": 0.9495652173913044
+      },
+      "precision_per_class": {
+        "ambient": 0.9766277128547579,
+        "indoor": 0.9779411764705882,
+        "industrial": 0.827683615819209,
+        "traffic": 0.9909255898366606
+      },
+      "recall_per_class": {
+        "ambient": 0.9766277128547579,
+        "indoor": 0.9672727272727273,
+        "industrial": 0.9766666666666667,
+        "traffic": 0.9115191986644408
+      },
+      "confusion_matrix": [
+        [
+          585,
+          8,
+          5,
+          1
+        ],
+        [
+          7,
+          532,
+          10,
+          1
+        ],
+        [
+          2,
+          2,
+          293,
+          3
+        ],
+        [
+          5,
+          2,
+          46,
+          546
+        ]
+      ]
+    },
+    "test": {
+      "accuracy": 0.9565853658536585,
+      "f1_weighted": 0.9571989419146059,
+      "f1_macro": 0.9500817181255059,
+      "f1_per_class": {
+        "ambient": 0.9808811305070657,
+        "indoor": 0.9762773722627737,
+        "industrial": 0.8970814132104454,
+        "traffic": 0.9460869565217391
+      },
+      "precision_per_class": {
+        "ambient": 0.978441127694859,
+        "indoor": 0.9798534798534798,
+        "industrial": 0.8319088319088319,
+        "traffic": 0.9890909090909091
+      },
+      "recall_per_class": {
+        "ambient": 0.9833333333333333,
+        "indoor": 0.9727272727272728,
+        "industrial": 0.9733333333333334,
+        "traffic": 0.9066666666666666
+      },
+      "confusion_matrix": [
+        [
+          590,
+          7,
+          1,
+          2
+        ],
+        [
+          5,
+          535,
+          8,
+          2
+        ],
+        [
+          3,
+          3,
+          292,
+          2
+        ],
+        [
+          5,
+          1,
+          50,
+          544
+        ]
+      ]
+    }
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "model_key": "M4",
+  "target": "Air_Quality_MQ135",
+  "features": [
+    "Temperature_C",
+    "Humidity_Pct",
+    "Dust_Density_ug_m3"
+  ],
+  "window": 12,
+  "splits": {
+    "train": {
+      "rmse": 110.83345550425645,
+      "mae": 89.57866941199498,
+      "normalized_mae": 0.10665397001070959,
+      "n_samples": 16390
+    },
+    "val": {
+      "rmse": 109.07596258907952,
+      "mae": 89.01878261761645,
+      "normalized_mae": 0.11261073069907204,
+      "n_samples": 2049
+    },
+    "test": {
+      "rmse": 111.41902382134586,
+      "mae": 90.2997971482135,
+      "normalized_mae": 0.10743580862369244,
+      "n_samples": 2049
+    }
+  }
+}

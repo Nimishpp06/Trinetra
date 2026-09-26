@@ -1,15 +1,7 @@
 {
   "rewrites": [
-    { "source": "/api/:path*", "destination": "/api/:path*" },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
-  "functions": {
-    "api/*.py": {
-      "runtime": "python3.11",
-      "maxDuration": 30
-    }
-  },
   "buildCommand": "cd Trinetra/Trinetra && npm install && npm run build",
-  "outputDirectory": "Trinetra/Trinetra/dist",
-  "installCommand": "pip install -r api/requirements.txt"
+  "outputDirectory": "Trinetra/Trinetra/dist"
 }

@@ -75,6 +75,8 @@ export const LiveMapPage = () => {
             temp: sr.latest_reading?.temperature,
             humidity: sr.latest_reading?.humidity,
             pm25: sr.latest_reading?.pm25_ug_m3,
+            source: sr.latest_reading?.source,
+            thermalComfort: sr.latest_reading?.thermal_comfort,
             hasData: !!sr.latest_reading,
         }));
     }, [stationReadings]);

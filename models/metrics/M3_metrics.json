@@ -1,0 +1,30 @@
+{
+  "model_key": "M3",
+  "target": "Temperature_C",
+  "features": [
+    "Humidity_Pct",
+    "Air_Quality_MQ135",
+    "Dust_Density_ug_m3"
+  ],
+  "window": 12,
+  "splits": {
+    "train": {
+      "rmse": 1.3297652195119378,
+      "mae": 1.0875271975905374,
+      "normalized_mae": 0.10693482768835177,
+      "n_samples": 16390
+    },
+    "val": {
+      "rmse": 1.3285251485692764,
+      "mae": 1.0823598844752536,
+      "normalized_mae": 0.10642673397003474,
+      "n_samples": 2049
+    },
+    "test": {
+      "rmse": 1.3117152607183284,
+      "mae": 1.063315203598268,
+      "normalized_mae": 0.1054876194045901,
+      "n_samples": 2049
+    }
+  }
+}
