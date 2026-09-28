@@ -47,3 +47,6 @@ htmlcov/
 # Firmware secrets
 firmware/trinetra_esp32/config.h
 opencode.json
+
+# Playwright test artifacts
+.playwright-mcp/

@@ -114,29 +114,36 @@ async def process_readings(
 
     rf, le = get_rf()
 
-    # Find unprocessed reading IDs
-    query = sb.table("readings").select("id").order("recorded_at", desc=True)
+    # Fetch a batch of raw readings (full rows) in ONE query. Ordering by id
+    # desc is equivalent to recorded_at desc for identity columns and keeps
+    # the index cheap.
+    query = sb.table("readings").select("*").order("id", desc=True)
     if station_id:
         query = query.eq("station_id", station_id)
 
-    # Get IDs already processed
-    processed_ids_resp = sb.table("processed_readings").select("reading_id").execute()
-    processed_ids = {r["reading_id"] for r in (processed_ids_resp.data or [])}
+    readings = query.limit(limit).execute().data or []
+    if not readings:
+        return {"processed": 0, "message": "No new readings to process"}
 
-    readings_resp = query.limit(limit * 3).execute()
-    readings = [r for r in (readings_resp.data or []) if r["id"] not in processed_ids][:limit]
+    # Ask which of THIS batch are already processed. Scoping to the batch ids
+    # keeps the response bounded (a table-wide select is capped at 1000 rows
+    # and silently truncates, which later causes unique-constraint failures).
+    batch_ids = [r["id"] for r in readings]
+    done_resp = (
+        sb.table("processed_readings")
+        .select("reading_id")
+        .in_("reading_id", batch_ids)
+        .execute()
+    )
+    done_ids = {r["reading_id"] for r in (done_resp.data or [])}
+    readings = [r for r in readings if r["id"] not in done_ids]
 
     if not readings:
         return {"processed": 0, "message": "No new readings to process"}
 
     batch = []
-    for reading in readings:
-        rid = reading["id"]
-        # Fetch full reading data
-        full = sb.table("readings").select("*").eq("id", rid).execute()
-        if not full.data:
-            continue
-        r = full.data[0]
+    for r in readings:
+        rid = r["id"]
 
         temp = r.get("temperature") or 0
         humidity = r.get("humidity") or 0
@@ -177,7 +184,11 @@ async def process_readings(
         })
 
     if batch:
-        sb.table("processed_readings").insert(batch).execute()
+        # ignore_duplicates: a racing caller (dashboard + forecast both
+        # triggering process) must not fail the whole batch on a duplicate.
+        sb.table("processed_readings").upsert(
+            batch, on_conflict="reading_id", ignore_duplicates=True
+        ).execute()
 
     return {"processed": len(batch), "station_id": station_id}
 

@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react'
-import { getStations, getLatestReadings, getAllRecentReadings } from '../services/api'
+import { getStations, getLatestReadings, getAllRecentReadings, processReadings } from '../services/api'
 import type { Station, ProcessedReading, StationWithReading } from '../services/types'
 
 interface DataContextValue {
@@ -25,6 +25,17 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const refreshData = useCallback(async () => {
     try {
       setError(null)
+
+      // Push raw readings through the ML models first, so the queries below
+      // see fresh processed_readings. Previously this only happened when the
+      // Forecast page was opened, which left the dashboard blank.
+      // Failure is non-fatal (API offline / demo mode) and must never block
+      // the dashboard from rendering.
+      await Promise.race([
+        processReadings().catch(() => undefined),
+        new Promise((resolve) => setTimeout(resolve, 8000)),
+      ])
+
       const [s, sr, rr] = await Promise.all([
         getStations(),
         getLatestReadings(),

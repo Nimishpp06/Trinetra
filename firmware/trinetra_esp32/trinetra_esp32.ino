@@ -15,10 +15,15 @@
 
 DHT dht(DHTPIN, DHTTYPE);
 
+unsigned long previousMillis = 0;  // interval timer for the last sample
+
 String buildJson(float temp, float hum, int mq135, float dust) {
   time_t now = time(nullptr);
   struct tm tmv;
-  localtime_r(&now, &tmv);
+  // UTC (not localtime): the "Z" suffix below means Zulu/UTC. Using
+  // localtime_r here would stamp IST readings as UTC and push them 5:30
+  // into the future, breaking time-series ordering and the LSTM window.
+  gmtime_r(&now, &tmv);
   char ts[32];
   if (now > 1000000) {
     strftime(ts, sizeof(ts), "%Y-%m-%dT%H:%M:%SZ", &tmv);
@@ -42,40 +47,55 @@ void sendToSupabase(float temp, float hum, int mq135, float dust) {
   WiFiClientSecure client;
   client.setInsecure();
 
-  HTTPClient http;
   String url = String(SUPABASE_URL) + "/rest/v1/" + SUPABASE_TABLE;
-
-  http.setTimeout(10000);
-  http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
-
-  if (!http.begin(client, url)) {
-    Serial.println("Unable to connect to Supabase endpoint");
-    return;
-  }
-
-  http.addHeader("apikey", SUPABASE_ANON_KEY);
-  http.addHeader("Authorization", String("Bearer ") + SUPABASE_ANON_KEY);
-  http.addHeader("Content-Type", "application/json");
-  http.addHeader("Prefer", "return=minimal");
-
   String payload = buildJson(temp, hum, mq135, dust);
   Serial.println("POST " + url);
   Serial.println(payload);
 
-  int code = http.POST(payload);
-  if (code > 0) {
-    Serial.print("Supabase response: ");
-    Serial.println(code);
-    if (code == 201) {
-      Serial.println("Reading stored ✔");
-    } else {
-      Serial.println(http.getString());
+  // Up to 2 attempts, each with a fresh HTTP session. A single failed POST
+  // would otherwise silently drop a reading.
+  int code = -1;
+  for (int attempt = 1; attempt <= 2; attempt++) {
+    if (attempt > 1) {
+      Serial.println("Retrying POST...");
+      delay(1000);
+      if (WiFi.status() != WL_CONNECTED) connectWifi();
     }
-  } else {
-    Serial.print("POST failed: ");
-    Serial.println(http.errorToString(code).c_str());
+
+    HTTPClient http;
+    http.setTimeout(10000);
+    http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
+
+    if (!http.begin(client, url)) {
+      Serial.println("Unable to connect to Supabase endpoint");
+      continue;
+    }
+
+    http.addHeader("apikey", SUPABASE_ANON_KEY);
+    http.addHeader("Authorization", String("Bearer ") + SUPABASE_ANON_KEY);
+    http.addHeader("Content-Type", "application/json");
+    http.addHeader("Prefer", "return=minimal");
+
+    code = http.POST(payload);
+
+    if (code > 0) {
+      Serial.print("Supabase response: ");
+      Serial.println(code);
+      if (code == 201) {
+        Serial.println("Reading stored ✔");
+      } else {
+        Serial.println(http.getString());
+      }
+    } else {
+      Serial.print("POST failed: ");
+      Serial.println(http.errorToString(code).c_str());
+    }
+
+    http.end();
+
+    if (code == 201) return;   // stored
+    if (code >= 400 && code < 500) return;  // 4xx = our request is wrong; retrying won't help
   }
-  http.end();
 }
 
 void connectWifi() {
