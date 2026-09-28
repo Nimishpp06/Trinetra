@@ -42,7 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signUp = useCallback(
     async (email: string, password: string, fullName: string): Promise<AuthResult> => {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -50,6 +50,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           emailRedirectTo: window.location.origin + '/auth/callback',
         },
       })
+      // Apply the session immediately when Supabase returns one. Waiting only
+      // on onAuthStateChange can leave `user` null for a tick after navigate(),
+      // which makes ProtectedRoute bounce straight back to /login.
+      if (!error && data.session) {
+        setSession(data.session)
+        setUser(data.session.user)
+        setLoading(false)
+      }
       return { error }
     },
     [],
@@ -57,7 +65,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = useCallback(
     async (email: string, password: string): Promise<AuthResult> => {
-      const { error } = await supabase.auth.signInWithPassword({ email, password })
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+      if (!error && data.session) {
+        setSession(data.session)
+        setUser(data.session.user)
+        setLoading(false)
+      }
       return { error }
     },
     [],
@@ -73,6 +86,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(async (): Promise<AuthResult> => {
     const { error } = await supabase.auth.signOut()
+    if (!error) {
+      setSession(null)
+      setUser(null)
+    }
     return { error }
   }, [])
 

@@ -3,27 +3,60 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabase';
 
-type Resolver = () => Promise<boolean>;
+interface ResolveResult {
+    ok: boolean;
+    error?: string;
+}
 
-// Runs the code exchange at most once, even if the effect re-runs (StrictMode).
-const resolveSession: Resolver = async () => {
+// Handles both Supabase flow types:
+//   PKCE    → /auth/callback?code=...      (default in supabase-js v2)
+//   Implicit → /auth/callback#access_token=...
+// getSession() can race with supabase-js's own URL detection, so poll briefly
+// instead of giving up on the first null. Errors are returned rather than
+// swallowed — silently bouncing the user to /login with no message made the
+// original failure impossible to diagnose.
+const resolveSession = async (): Promise<ResolveResult> => {
     try {
         const code = new URLSearchParams(window.location.search).get('code');
+        const hasImplicitTokens = window.location.hash.includes('access_token=');
+
         if (code) {
             const { error } = await supabase.auth.exchangeCodeForSession(window.location.href);
-            if (error) throw error;
+            if (error) {
+                return { ok: false, error: `Sign-in failed: ${error.message}` };
+            }
+        } else if (!hasImplicitTokens) {
+            return {
+                ok: false,
+                error:
+                    'Sign-in was redirected without an authorisation code. ' +
+                    'Add http://localhost:5173/** to Supabase → Authentication → URL Configuration → Redirect URLs.',
+            };
         }
-        const { data } = await supabase.auth.getSession();
-        return Boolean(data.session);
-    } catch {
-        return false;
+
+        // Poll: supabase-js may still be parsing the URL / restoring the session.
+        for (let attempt = 0; attempt < 20; attempt++) {
+            const { data } = await supabase.auth.getSession();
+            if (data.session) return { ok: true };
+            await new Promise((resolve) => setTimeout(resolve, 150));
+        }
+
+        return {
+            ok: false,
+            error: 'Sign-in did not complete — no session was returned.',
+        };
+    } catch (e) {
+        return {
+            ok: false,
+            error: e instanceof Error ? e.message : 'Sign-in failed unexpectedly.',
+        };
     }
 };
 
 export const AuthCallback = () => {
     const navigate = useNavigate();
     const { user } = useAuth();
-    const resolveRef = useRef<Promise<boolean> | null>(null);
+    const resolveRef = useRef<Promise<ResolveResult> | null>(null);
 
     // A session appeared (OAuth redirect or code exchange) → dashboard.
     useEffect(() => {
@@ -35,21 +68,23 @@ export const AuthCallback = () => {
     useEffect(() => {
         if (user) return;
 
+        // StrictMode-safe: the exchange runs exactly once.
         if (!resolveRef.current) {
             resolveRef.current = resolveSession();
         }
 
         let cancelled = false;
 
-        resolveRef.current.then(hasSession => {
+        resolveRef.current.then((result) => {
             if (cancelled) return;
-            if (hasSession) {
+            if (result.ok) {
                 navigate('/dashboard', { replace: true });
             } else {
-                // No code and no session → let the state settle, then login.
-                window.setTimeout(() => {
-                    if (!cancelled) navigate('/login', { replace: true });
-                }, 800);
+                console.error('[auth] callback failed:', result.error);
+                navigate('/login', {
+                    replace: true,
+                    state: { authError: result.error },
+                });
             }
         });
 

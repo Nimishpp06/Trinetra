@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabase';
 import { TrinetraLogo } from '../components/TrinetraLogo';
@@ -8,6 +8,7 @@ type Mode = 'signin' | 'signup';
 
 export const LoginPage = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const { user, loading, signUp, signIn, signInWithGoogle } = useAuth();
 
     const [mode, setMode] = useState<Mode>('signin');
@@ -24,6 +25,16 @@ export const LoginPage = () => {
             navigate('/dashboard', { replace: true });
         }
     }, [loading, user, navigate]);
+
+    // OAuth callback bounced back here with a reason — show it instead of
+    // silently presenting a blank form again.
+    useEffect(() => {
+        const state = location.state as { authError?: string } | null;
+        if (state?.authError) {
+            setError(state.authError);
+            navigate('.', { replace: true, state: null });
+        }
+    }, [location.state, navigate]);
 
     const switchMode = (next: Mode) => {
         setMode(next);
