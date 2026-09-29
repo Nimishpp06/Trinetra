@@ -3,12 +3,16 @@ import type { Station, ProcessedReading, StationWithReading, ForecastResponse, A
 
 const API_BASE = import.meta.env.VITE_API_BASE || '/api'
 
-// Static hosts have no proxy: on Vercel an unset VITE_API_BASE silently sends
-// every call to the site's own (empty) /api and 404s. Loud now, not on stage.
-if (import.meta.env.PROD && API_BASE === '/api') {
+// Vercel rewrites /api/* to the FastAPI function (vercel.json), so '/api' IS the
+// correct production value there. A plain static host has no rewrite and would
+// 404 every call — so warn only when the variable is genuinely unset, never when
+// it is deliberately '/api'. (Testing `API_BASE === '/api'` fired the warning on
+// every Vercel deploy and read as a fault where there was none.)
+if (import.meta.env.PROD && !import.meta.env.VITE_API_BASE) {
   console.warn(
-    '[api] VITE_API_BASE is not set — falling back to "/api", which will 404 on ' +
-      'Vercel. Set it to your Hugging Face Space URL, e.g. https://<space>.hf.space/api',
+    '[api] VITE_API_BASE is not set — defaulting to "/api", which only resolves ' +
+      'behind a rewrite (Vercel) or the dev proxy. Set it to your API origin, ' +
+      'e.g. https://<host>/api',
   )
 }
 

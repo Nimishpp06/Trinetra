@@ -1,0 +1,40 @@
+// Trinetra ESP32 Configuration — TEMPLATE
+//
+// config.h itself is gitignored so Wi-Fi credentials never reach the repo.
+// To build the firmware:   cp config.h.example config.h   and fill in Wi-Fi.
+//
+// Device identity: keep STATION_ID "station_01" for device 1, change only
+// STATION_ID to "station_02" for device 2. Both use the same pins.
+
+#ifndef CONFIG_H
+#define CONFIG_H
+
+// --- Wi-Fi Credentials ---
+#define WIFI_SSID        "YOUR_WIFI_SSID"
+#define WIFI_PASSWORD    "YOUR_WIFI_PASSWORD"
+
+// --- Supabase Credentials ---
+#define SUPABASE_URL     "https://tmqtiamgeapiiikgjfti.supabase.co"
+#define SUPABASE_ANON_KEY "YOUR_SUPABASE_ANON_KEY"
+#define SUPABASE_TABLE   "readings"
+
+// --- Station Identity (must exist in the Supabase stations table) ---
+#define STATION_ID       "station_01"
+
+// --- Pin Definitions (from V2MP.ino) ---
+#define DHTPIN           4       // DHT11 Data Pin
+#define DHTTYPE          DHT11
+#define MQ135_PIN        34      // MQ135 Analog Pin
+#define DUST_LED_PIN     25      // Sharp Dust Sensor IR LED Control
+#define DUST_VO_PIN      33      // Sharp Dust Sensor Analog Output
+
+// --- Calibration & Timing ---
+#define NO_DUST_VOLTAGE  0.50
+#define INTERVAL_MS      6000    // 6 seconds = 10 logs/min (REQUIRED: forecast assumes 6s)
+
+// --- NTP Time ---
+#define NTP_SERVER       "pool.ntp.org"
+#define GMT_OFFSET_SEC   19800   // +5:30 IST (local display only)
+#define DAYLIGHT_OFFSET  0
+
+#endif
