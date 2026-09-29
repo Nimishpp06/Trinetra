@@ -1,50 +1,64 @@
 import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { supabase } from '../services/supabase';
+import { supabase, INITIAL_AUTH_URL } from '../services/supabase';
 
 interface ResolveResult {
     ok: boolean;
     error?: string;
 }
 
-// Handles both Supabase flow types:
-//   PKCE    → /auth/callback?code=...      (default in supabase-js v2)
-//   Implicit → /auth/callback#access_token=...
-// getSession() can race with supabase-js's own URL detection, so poll briefly
-// instead of giving up on the first null. Errors are returned rather than
-// swallowed — silently bouncing the user to /login with no message made the
-// original failure impossible to diagnose.
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const waitForSession = async (attempts: number, delayMs: number): Promise<boolean> => {
+    for (let attempt = 0; attempt < attempts; attempt++) {
+        const { data } = await supabase.auth.getSession();
+        if (data.session) return true;
+        if (attempt < attempts - 1) await sleep(delayMs);
+    }
+    return false;
+};
+
+// supabase-js parses /auth/callback during its own async init and can strip
+// ?code= from window.location before this component even mounts. Reading the
+// live URL alone therefore looks like "no code arrived" — which is what the
+// original silent bounce actually was. So: read the snapshot taken before
+// createClient(), let supabase-js finish its own exchange first, and only
+// then exchange the code ourselves.
 const resolveSession = async (): Promise<ResolveResult> => {
     try {
-        const code = new URLSearchParams(window.location.search).get('code');
-        const hasImplicitTokens = window.location.hash.includes('access_token=');
+        const live = new URLSearchParams(window.location.search);
+        const snap = new URLSearchParams(INITIAL_AUTH_URL.split('?')[1]?.split('#')[0] ?? '');
+        const code = live.get('code') ?? snap.get('code');
+        const hasImplicitTokens =
+            window.location.hash.includes('access_token=') ||
+            INITIAL_AUTH_URL.includes('access_token=');
 
-        if (code) {
-            const { error } = await supabase.auth.exchangeCodeForSession(window.location.href);
-            if (error) {
-                return { ok: false, error: `Sign-in failed: ${error.message}` };
-            }
-        } else if (!hasImplicitTokens) {
+        if (!code && !hasImplicitTokens) {
+            // Nothing arrived at all — genuinely a redirect-configuration problem.
+            console.error('[auth] callback URL carried no credentials:', INITIAL_AUTH_URL);
             return {
                 ok: false,
                 error:
                     'Sign-in was redirected without an authorisation code. ' +
-                    'Add http://localhost:5173/** to Supabase → Authentication → URL Configuration → Redirect URLs.',
+                    'Add http://localhost:5173/** to Supabase → Authentication → ' +
+                    'URL Configuration → Redirect URLs, then try again.',
             };
         }
 
-        // Poll: supabase-js may still be parsing the URL / restoring the session.
-        for (let attempt = 0; attempt < 20; attempt++) {
-            const { data } = await supabase.auth.getSession();
-            if (data.session) return { ok: true };
-            await new Promise((resolve) => setTimeout(resolve, 150));
+        // 1. supabase-js may already be exchanging the code — give it a moment
+        //    so we don't fire a second exchange against a consumed code.
+        if (await waitForSession(8, 200)) return { ok: true };
+
+        // 2. Exchange it ourselves using whichever URL still carries the code.
+        if (code) {
+            const exchangeUrl = live.get('code') ? window.location.href : INITIAL_AUTH_URL;
+            const { error } = await supabase.auth.exchangeCodeForSession(exchangeUrl);
+            if (error) return { ok: false, error: `Sign-in failed: ${error.message}` };
+            if (await waitForSession(20, 150)) return { ok: true };
         }
 
-        return {
-            ok: false,
-            error: 'Sign-in did not complete — no session was returned.',
-        };
+        return { ok: false, error: 'Sign-in did not complete — no session was returned.' };
     } catch (e) {
         return {
             ok: false,
