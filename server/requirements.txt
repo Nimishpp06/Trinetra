@@ -1,6 +1,6 @@
-# Vercel Python Function Dependencies
-# The repo-root requirements.txt includes this file, which is what Vercel
-# installs from; local dev installs it directly (npm run install:all).
+# Local / Docker dependency list. Vercel installs from the repo-root
+# requirements.txt instead (its parser rejects `-r` includes), so the two
+# files are kept identical -- change one, change the other.
 
 # Core
 # Pinned exactly: joblib pickles are only reliably loadable by the sklearn

@@ -50,3 +50,5 @@ opencode.json
 
 # Playwright test artifacts
 .playwright-mcp/
+
+.env*
