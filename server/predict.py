@@ -17,7 +17,7 @@ Output:
     "source": "ambient",
     "source_confidence": 0.87,
     "current_aqi": 57,
-    "forecast_aqi": 62,
+    "forecast_aqi": null,
     "model_version": "global"
 }
 """
@@ -38,7 +38,6 @@ os.environ["KERAS_BACKEND"] = "torch"
 
 import joblib
 import numpy as np
-from keras.models import load_model
 
 app = FastAPI(title="Trinetra ML API", version="1.0.0")
 
@@ -78,11 +77,17 @@ def get_models():
 
     if _lstm_model is None:
         try:
-            lstm_path = _find_model(base_dir, "lstm_aq", "forecaster.h5")
+            from onnx_model import load_regressor
+
+            # ONNX is what ships; .h5 keeps local dev working pre-conversion.
+            lstm_path = _find_model(base_dir, "lstm_aq", "forecaster.onnx") \
+                or _find_model(base_dir, "lstm_aq", "forecaster.h5")
             scaler_path = _find_model(base_dir, "lstm_aq", "scaler.pkl")
             if lstm_path and scaler_path:
-                _lstm_model = load_model(str(lstm_path), compile=False)
-                _lstm_scaler = joblib.load(scaler_path)
+                model = load_regressor(lstm_path.parent)
+                if model is not None:
+                    _lstm_model = model
+                    _lstm_scaler = joblib.load(scaler_path)
         except Exception:
             pass
 
@@ -136,16 +141,12 @@ async def predict(request: PredictRequest):
 
     current_aqi = compute_aqi(request.pm25)
 
+    # forecast_aqi is deliberately always null. The AQI forecaster (lstm_aq)
+    # takes a 12-step window of temperature/humidity/dust, but `past_aqi`
+    # supplies 12 AQI values -- the shapes never matched, so the old code
+    # raised ValueError inside `except` and returned null anyway. Real
+    # forecasting, built from station history, is GET /api/forecast.
     forecast_aqi = None
-    if lstm is not None and scaler is not None and request.past_aqi is not None:
-        try:
-            recent = np.array(request.past_aqi[-12:]).reshape(-1, 1)
-            recent_scaled = scaler.transform(recent)
-            X_lstm = recent_scaled.reshape(1, 12, 1)
-            pred_scaled = lstm.predict(X_lstm, verbose=0)
-            forecast_aqi = float(scaler.inverse_transform(pred_scaled)[0, 0])
-        except Exception:
-            pass
 
     return PredictResponse(
         source=source,

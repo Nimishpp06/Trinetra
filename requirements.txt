@@ -1,0 +1,3 @@
+# Vercel installs Python dependencies from the project root.
+# The actual dependency list lives next to the code it describes.
+-r server/requirements.txt

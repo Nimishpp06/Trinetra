@@ -1,5 +1,13 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "functions": {
+    "api/index.py": {
+      "maxDuration": 60,
+      "excludeFiles": "{**/node_modules/**,**/__pycache__/**,data/**,firmware/**,.playwright-mcp/**,Miniproject*/**,**/*.h5,**/*.ipynb}"
+    }
+  },
   "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api" },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
   "buildCommand": "cd Trinetra/Trinetra && npm install && npm run build",

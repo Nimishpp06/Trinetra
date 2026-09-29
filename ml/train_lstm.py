@@ -154,6 +154,9 @@ def train_lstm_model(df, model_key, model_dir, epochs=50):
 
     model.save(trained_dir / "forecaster.h5")
     joblib.dump(scaler, trained_dir / "scaler.pkl")
+    # The target scaler is what turns a scaled prediction back into a real
+    # reading. Serving code needs it, so it must ship alongside the model.
+    joblib.dump(tscaler, trained_dir / "target_scaler.pkl")
     with open(metrics_dir / f"{model_key}_metrics.json", 'w') as f:
         json.dump(results, f, indent=2)
     pd.DataFrame(history.history).to_csv(trained_dir / "training_history.csv", index=False)

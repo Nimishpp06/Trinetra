@@ -59,7 +59,7 @@ def load_lstm_models():
     if _lstm_models:
         return _lstm_models
 
-    from keras.models import load_model
+    from onnx_model import load_regressor
 
     base = Path(__file__).parent.parent
 
@@ -72,12 +72,27 @@ def load_lstm_models():
 
     for key, cfg in configs.items():
         try:
-            model_path = _find_model(base, cfg["subdir"], "forecaster.h5")
+            # ONNX is what ships; .h5 keeps local dev working pre-conversion.
+            model_path = _find_model(base, cfg["subdir"], "forecaster.onnx") \
+                or _find_model(base, cfg["subdir"], "forecaster.h5")
             scaler_path = _find_model(base, cfg["subdir"], "scaler.pkl")
             if model_path and scaler_path:
-                model = load_model(str(model_path), compile=False)
+                model = load_regressor(model_path.parent)
+                if model is None:
+                    continue
                 scaler = joblib.load(scaler_path)
-                _lstm_models[key] = {"model": model, "scaler": scaler, "cfg": cfg}
+                # Two different scalers: `scaler` scales the model's INPUT,
+                # `target_scaler` unscales its OUTPUT. The second one was
+                # never persisted by training -- see ml/fit_target_scalers.py.
+                target_path = model_path.parent / "target_scaler.pkl"
+                if not target_path.exists():
+                    continue
+                _lstm_models[key] = {
+                    "model": model,
+                    "scaler": scaler,
+                    "target_scaler": joblib.load(target_path),
+                    "cfg": cfg,
+                }
         except Exception:
             pass
 
@@ -88,14 +103,23 @@ def load_lstm_models():
 load_lstm_models()
 
 
-def forecast_multi(model, scaler, last_window: np.ndarray, n_steps: int) -> List[float]:
-    """Recursive multi-step forecast."""
+def forecast_multi(model, feature_scaler, target_scaler,
+                   last_window: np.ndarray, n_steps: int) -> List[float]:
+    """Recursive multi-step forecast.
+
+    ``last_window`` holds raw sensor values. It is scaled with the *feature*
+    scaler here because the models were trained on scaled input; the model's
+    output is scaled too, so it is converted back to real units with the
+    *target* scaler. These are two different objects -- using the feature
+    scaler to unscale a single column raised ValueError and, behind the
+    except below, silently produced an all-zero forecast.
+    """
     preds = []
-    window = last_window.copy()
+    window = feature_scaler.transform(np.asarray(last_window, dtype=float))
     for _ in range(n_steps):
         try:
             pred_scaled = model.predict(window.reshape(1, WINDOW, -1), verbose=0)[0, 0]
-            pred = scaler.inverse_transform([[pred_scaled]])[0, 0]
+            pred = target_scaler.inverse_transform([[pred_scaled]])[0, 0]
             preds.append(float(pred))
             new_row = window[-1].copy()
             new_row[0] = pred_scaled
@@ -185,7 +209,8 @@ async def forecast(
         feature_cols = [feature_map.get(f, f) for f in cfg["features"]]
 
         window_data = np.array([[r.get(c, 0) or 0 for c in feature_cols] for r in readings])
-        preds = forecast_multi(m["model"], m["scaler"], window_data, n_steps)
+        preds = forecast_multi(m["model"], m["scaler"], m["target_scaler"],
+                               window_data, n_steps)
 
         # Sample at intervals
         for i in range(0, n_steps, step_interval):
