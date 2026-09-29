@@ -35,14 +35,35 @@ const resolveSession = async (): Promise<ResolveResult> => {
             INITIAL_AUTH_URL.includes('access_token=');
 
         if (!code && !hasImplicitTokens) {
-            // Nothing arrived at all — genuinely a redirect-configuration problem.
+            // Nothing arrived — report *what* Supabase actually sent instead of
+            // guessing. GoTrue sends ?error=&error_description= when it rejects
+            // the redirect URL, which looks identical to "no code" if unread.
+            const snapQuery = INITIAL_AUTH_URL.includes('?')
+                ? INITIAL_AUTH_URL.slice(INITIAL_AUTH_URL.indexOf('?'))
+                : '';
+            const params = new URLSearchParams(
+                `${window.location.search}&${snapQuery.replace(/^\?/, '')}`,
+            );
+            // Implicit-flow failures land in the fragment, not the query.
+            for (const raw of [window.location.hash, INITIAL_AUTH_URL.split('#')[1] ?? '']) {
+                if (!raw) continue;
+                new URLSearchParams(raw.replace(/^#/, '')).forEach((v, k) => params.append(k, v));
+            }
+            const reason =
+                params.get('error_description') || params.get('error') || null;
+
             console.error('[auth] callback URL carried no credentials:', INITIAL_AUTH_URL);
+
+            if (reason) {
+                return { ok: false, error: `Google sign-in failed: ${decodeURIComponent(reason)}` };
+            }
+
             return {
                 ok: false,
                 error:
-                    'Sign-in was redirected without an authorisation code. ' +
-                    'Add http://localhost:5173/** to Supabase → Authentication → ' +
-                    'URL Configuration → Redirect URLs, then try again.',
+                    `No authorisation code was returned. Callback URL was: ` +
+                    `${INITIAL_AUTH_URL} — Add http://localhost:5173/** to ` +
+                    `Supabase → Authentication → URL Configuration → Redirect URLs.`,
             };
         }
 
