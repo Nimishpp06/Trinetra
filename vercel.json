@@ -10,6 +10,6 @@
     { "source": "/api/(.*)", "destination": "/api" },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
-  "buildCommand": "cd Trinetra/Trinetra && npm install && npm run build",
+  "buildCommand": "cd Trinetra/Trinetra && npm install && npm run build && rm -rf node_modules",
   "outputDirectory": "Trinetra/Trinetra/dist"
 }
