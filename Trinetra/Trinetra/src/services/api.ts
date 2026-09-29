@@ -3,6 +3,34 @@ import type { Station, ProcessedReading, StationWithReading, ForecastResponse, A
 
 const API_BASE = import.meta.env.VITE_API_BASE || '/api'
 
+// Static hosts have no proxy: on Vercel an unset VITE_API_BASE silently sends
+// every call to the site's own (empty) /api and 404s. Loud now, not on stage.
+if (import.meta.env.PROD && API_BASE === '/api') {
+  console.warn(
+    '[api] VITE_API_BASE is not set — falling back to "/api", which will 404 on ' +
+      'Vercel. Set it to your Hugging Face Space URL, e.g. https://<space>.hf.space/api',
+  )
+}
+
+// A sleeping Hugging Face Space can take ~30s to wake. Bound the wait so the
+// UI fails with a readable message instead of spinning until the browser's
+// ~300s default timeout while the jury watches.
+const API_TIMEOUT_MS = 30_000
+
+async function apiFetch(path: string, init?: RequestInit): Promise<Response> {
+  try {
+    return await fetch(`${API_BASE}${path}`, {
+      ...init,
+      signal: AbortSignal.timeout(API_TIMEOUT_MS),
+    })
+  } catch (e) {
+    if (e instanceof DOMException && (e.name === 'TimeoutError' || e.name === 'AbortError')) {
+      throw new Error('The ML API is taking longer than usual — it may be waking up. Try again in ~30 seconds.')
+    }
+    throw new Error('Could not reach the ML API. Check your connection and try again.')
+  }
+}
+
 // ── Supabase queries ──
 
 export async function getStations(): Promise<Station[]> {
@@ -77,19 +105,19 @@ function parseJson<T>(res: Response, unavailableMessage: string): Promise<T> {
 export async function processReadings(stationId?: string): Promise<{ processed: number }> {
   const params = new URLSearchParams()
   if (stationId) params.set('station_id', stationId)
-  const res = await fetch(`${API_BASE}/process?${params}`, { method: 'POST' })
+  const res = await apiFetch(`/process?${params}`, { method: 'POST' })
   if (!res.ok) throw new Error(`Process failed: ${res.status}`)
   return parseJson<{ processed: number }>(res, 'Processing unavailable in this build')
 }
 
 export async function getForecast(stationId: string, hours: number = 1): Promise<ForecastResponse> {
-  const res = await fetch(`${API_BASE}/forecast?station_id=${stationId}&hours=${hours}`)
+  const res = await apiFetch(`/forecast?station_id=${stationId}&hours=${hours}`)
   if (!res.ok) throw new Error(`Forecast failed: ${res.status}`)
   return parseJson<ForecastResponse>(res, 'Forecast unavailable in this build')
 }
 
 export async function postQuestion(req: AskRequest): Promise<AskResponse> {
-  const res = await fetch(`${API_BASE}/ask`, {
+  const res = await apiFetch('/ask', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(req),

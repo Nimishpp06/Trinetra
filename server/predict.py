@@ -104,14 +104,6 @@ def compute_aqi(pm25: float) -> float:
     return 500.0 if pm25 > 380 else 0.0
 
 
-def classify_aqi(aqi: float) -> str:
-    if aqi <= 50: return "good"
-    if aqi <= 100: return "moderate"
-    if aqi <= 200: return "poor"
-    if aqi <= 300: return "unhealthy"
-    return "severe"
-
-
 class PredictRequest(BaseModel):
     pm25: float = Field(..., ge=0, le=500, description="PM2.5 in ug/m3")
     gas_ppm: int = Field(..., ge=0, le=5000, description="MQ135 raw ADC value")
@@ -162,16 +154,6 @@ async def predict(request: PredictRequest):
         forecast_aqi=forecast_aqi,
         model_version="global",
     )
-
-
-@app.get("/health")
-async def health():
-    rf, le, lstm, scaler = get_models()
-    return {
-        "status": "healthy" if rf is not None else "models_not_loaded",
-        "random_forest_loaded": rf is not None,
-        "lstm_loaded": lstm is not None,
-    }
 
 
 handler = app

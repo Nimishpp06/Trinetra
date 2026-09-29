@@ -47,8 +47,13 @@ async def root():
 
 
 @app.get("/api/health")
+@app.get("/health")
 async def health():
-    """Combined health check."""
+    """Combined health check.
+
+    Served at both paths: /api/health is the documented endpoint, /health is
+    what uptime monitors and Docker health probes conventionally hit.
+    """
     from predict import get_models
     rf, le, lstm, scaler = get_models()
     return {

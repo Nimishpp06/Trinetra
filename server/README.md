@@ -31,6 +31,5 @@ server/
 ├── process.py     # ML processing pipeline
 ├── forecast.py    # Multi-step LSTM forecast
 ├── ask.py         # Gemini AI assistant
-├── health.py      # Model health check
 └── requirements.txt
 ```
