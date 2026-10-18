@@ -1,17 +1,18 @@
 # Trinetra
 
-Real-time air quality monitoring for the Somaiya Vidyavihar campus — ESP32 sensor
-nodes streaming into Supabase, machine learning running server-side, and a React
-dashboard on top.
+Real-time air quality monitoring for the Somaiya Vidyavihar campus. ESP32 sensor
+nodes stream into Supabase, trained models classify and forecast server-side, and
+a React dashboard puts it all on screen.
 
-### 🔴 Live: **https://trinetra-rouge.vercel.app**
-### 📦 Repository: **https://github.com/Nimishpp06/Trinetra**
+**Live:** https://trinetra-rouge.vercel.app · **Repo:** https://github.com/Nimishpp06/Trinetra
+
+Trained on **20,500 readings from 19 campus locations** — see [Model performance](#model-performance).
 
 ---
 
 ## Features
 
-| | |
+| Feature | What it does |
 |---|---|
 | **Live Dashboard** | AQI ring, PM2.5 / PM10 / temperature / humidity cards, 30s auto-refresh |
 | **Analytics** | AQI trend, pollutant composition, location comparison, temp-vs-humidity |
@@ -23,6 +24,28 @@ dashboard on top.
 | **Auth** | Google sign-in and email/password — the whole app sits behind login |
 
 Everything above runs on **real, trained models** — no mock data in the frontend.
+When a sensor is missing, the UI says so instead of inventing numbers.
+
+---
+
+## Model performance
+
+Six models ship in `models/trained/`, evaluated on an 80 / 10 / 10
+train / validation / test split of the 19-location dataset:
+
+| Model | Task | Algorithm | Test set |
+|---|---|---|---|
+| **Pollution source** | 4-class: ambient / indoor / industrial / traffic | Random Forest | **95.7% acc · 95.7% F1** |
+| **Thermal comfort** | 2-class: Comfortable / Hot & Humid | Random Forest | **100% acc** |
+| **Temperature** | regression (°C) | LSTM | **RMSE 1.31** · MAE 1.06 |
+| **Gas signal (MQ135)** | regression (raw ADC) | LSTM | **RMSE 111** · MAE 90 |
+| **PM2.5** | regression (µg/m³) | LSTM | **RMSE 18.3** · MAE 13.4 |
+| **PM10** | regression (µg/m³) | LSTM | **RMSE 31.3** · MAE 23.1 |
+
+Full per-split numbers — confusion matrices, per-class precision/recall, training
+curves — are committed as `models/metrics/M1…M6.json` and
+`models/trained/*/training_history.csv`. The LSTMs are exported to **ONNX**
+(with a parity gate) and served by ONNX Runtime.
 
 ---
 
@@ -31,11 +54,11 @@ Everything above runs on **real, trained models** — no mock data in the fronte
 ```
    ESP32 (×2)          Supabase              FastAPI              React
  ┌─────────────┐     ┌─────────────┐      ┌──────────────┐     ┌──────────┐
- │ DHT11       │     │  readings   │ POST │  /api/process│     │          │
- │ MQ135       │ ──► │   (raw)     │ ───► │  RF + LSTM   │ ──► │ Dashboard│
- │ Sharp dust  │     └──────┬──────┘      └──────┬───────┘     │ Forecast │
- └─────────────┘            │                    │             │ AI       │
-                            │             ┌──────▼───────┐     └──────────┘
+ │ DHT11       │     │  readings   │ POST │  /api/process│     │ Dashboard│
+ │ MQ135       │ ──► │   (raw)     │ ───► │  RF + LSTM   │ ──► │ Forecast │
+ │ Sharp dust  │     └──────┬──────┘      └──────┬───────┘     │ AI       │
+ └─────────────┘            │                    │             └──────────┘
+                            │             ┌──────▼───────┐
                             │             │ processed_   │
                             └────────────►│ readings     │
                                 (forecast │  (enriched)  │
@@ -46,15 +69,16 @@ Everything above runs on **real, trained models** — no mock data in the fronte
 Two tables, deliberately:
 
 - **`readings`** — exactly what the sensor posted, untouched.
-- **`processed_readings`** — the same rows enriched by the models (predicted
+- **`processed_readings`** — the same rows enriched by the models (PM2.5, PM10,
   AQI, pollution source, comfort band). Charts and analytics read this.
 
 Because `/api/forecast` reads the **raw** table, a station only needs its own
 sensor history to forecast — the ML pipeline can lag without breaking it.
 
-**Stations:** `station_01` and `station_02`, each an ESP32 reporting every
-**6 seconds**. That interval is load-bearing: the forecast model's window is
-derived from it, so `INTERVAL_MS` must stay at `6000`.
+**Stations:** `station_01` and `station_02` — physical ESP32 nodes reporting every
+**6 seconds**. That interval is load-bearing: the forecast window is built from
+it, so `INTERVAL_MS` must stay at `6000`. The 19-location dataset in
+`Miniproject (Somaiya AQI Datasets)/` is the offline training corpus.
 
 ---
 
@@ -62,7 +86,7 @@ derived from it, so `INTERVAL_MS` must stay at `6000`.
 
 - **Frontend** — React 19, TypeScript, Vite, Recharts, Leaflet, Supabase JS
 - **Backend** — FastAPI (Python), deployed as a single Vercel serverless function
-- **ML** — scikit-learn (Random Forest), LSTM forecaster exported to **ONNX**
+- **ML** — scikit-learn (Random Forest), LSTM exported to **ONNX** + ONNX Runtime
 - **Database** — Supabase (PostgreSQL + Auth + Realtime)
 - **AI** — Google Gemini
 - **Firmware** — Arduino ESP32
@@ -197,7 +221,7 @@ curl -X POST http://localhost:8000/api/ask \
 ### Retraining
 
 ```bash
-python ml/train_all.py      # fits RF + LSTM into models/trained/
+python ml/train_all.py      # fits RF + LSTM → models/trained/ + models/metrics/
 python ml/export_onnx.py    # converts LSTMs to ONNX + parity gate
 ```
 
@@ -237,9 +261,14 @@ npx vercel deploy --prod
 │   ├── ask.py                # /api/ask      (Gemini chatbot)
 │   └── onnx_model.py         # ONNX Runtime loader, Keras fallback
 ├── ml/                       # training + ONNX export
-├── models/trained/           # committed model artifacts
+├── models/
+│   ├── trained/              # committed model artifacts
+│   └── metrics/              # per-split evaluation (M1–M6 JSON)
 ├── firmware/trinetra_esp32/  # .ino + config.h.example
+├── sdmodel/                  # enclosure design (FreeCAD, STL, 3MF)
 ├── supabase/                 # schema, migrations, auth SQL
+├── Miniproject (Somaiya AQI Datasets)/   # 19-location training data
+├── DEPLOY.md                 # step-by-step deployment notes
 └── Trinetra/Trinetra/        # React frontend (Vite)
 ```
 
@@ -249,6 +278,7 @@ npx vercel deploy --prod
 
 | Symptom | Cause / fix |
 |---|---|
+| PM2.5 / PM10 / AQI all read 0 | The dust sensor is not attached — temp, humidity and gas values still flow; attach it and PM values return |
 | Forecast: *"Need 12 readings, have N"* | That station has under 12 raw rows — it needs its own sensor history |
 | Charts empty but forecast works | Run `/api/process`; charts read `processed_readings`, forecast reads `readings` |
 | Email signup says "check your inbox" | No SMTP configured — turn **Confirm email** off in Supabase, or use Google |
