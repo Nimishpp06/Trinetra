@@ -58,7 +58,7 @@ export const AnalyticsPage = () => {
             if (now - t > hours * 3600 * 1000) continue;
             const hourKey = new Date(r.processed_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             if (!hourlyMap.has(hourKey)) hourlyMap.set(hourKey, []);
-            if (r.aqi) hourlyMap.get(hourKey)!.push(r.aqi);
+            if (r.aqi != null) hourlyMap.get(hourKey)!.push(r.aqi);
         }
         return Array.from(hourlyMap.entries()).map(([time, aqis]) => ({
             time,
@@ -67,15 +67,14 @@ export const AnalyticsPage = () => {
     }, [recentReadings, selectedLocation, selectedPeriod]);
 
     const pollutantData = useMemo(() => {
-        const withPm = recentReadings.filter(r => r.pm25_ug_m3 && r.pm10_ug_m3);
-        if (withPm.length === 0) return [
-            { name: 'PM2.5', value: 40, color: '#9b1c1c' },
-            { name: 'PM10', value: 25, color: '#ea580c' },
-            { name: 'Gas', value: 20, color: '#d97706' },
-            { name: 'Other', value: 15, color: '#6b7280' },
-        ];
+        // A 0 reading is real data, but an all-zero batch means the dust
+        // sensor is silent — show an empty state instead of inventing a
+        // percentage breakdown (the old hardcoded 40/25/20/15 fallback).
+        const withPm = recentReadings.filter(r => r.pm25_ug_m3 != null && r.pm10_ug_m3 != null);
+        if (withPm.length === 0) return [];
         const avgPm25 = withPm.reduce((s, r) => s + (r.pm25_ug_m3 ?? 0), 0) / withPm.length;
         const avgPm10 = withPm.reduce((s, r) => s + (r.pm10_ug_m3 ?? 0), 0) / withPm.length;
+        if (avgPm25 === 0 && avgPm10 === 0) return [];
         const total = avgPm25 + avgPm10 + 1;
         return [
             { name: 'PM2.5', value: Math.round(avgPm25 / total * 100), color: '#9b1c1c' },
@@ -96,7 +95,7 @@ export const AnalyticsPage = () => {
 
     const scatterData = useMemo(() => {
         return recentReadings
-            .filter(r => r.temperature && r.humidity)
+            .filter(r => r.temperature != null && r.humidity != null)
             .map(r => ({
                 temp: r.temperature!,
                 humidity: r.humidity!,
@@ -153,15 +152,21 @@ export const AnalyticsPage = () => {
                             <button className="chart-icon-btn" title="More"><MoreVertical size={14} /></button>
                         </div>
                     </div>
-                    <ResponsiveContainer width="100%" height={220}>
-                        <LineChart data={aqiTrendData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
-                            <XAxis dataKey="time" tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
-                            <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} domain={[0, 200]} />
-                            <Tooltip content={<AQITooltip />} />
-                            <Line type="monotone" dataKey="aqi" stroke="#9b1c1c" strokeWidth={2} dot={{ r: 4, fill: '#9b1c1c', stroke: '#fff', strokeWidth: 2 }} activeDot={{ r: 6, fill: '#9b1c1c' }} />
-                        </LineChart>
-                    </ResponsiveContainer>
+                    {aqiTrendData.length === 0 ? (
+                        <div style={{ padding: '72px 0', textAlign: 'center', color: '#9ca3af', fontSize: 13 }}>
+                            No readings in the selected period yet.
+                        </div>
+                    ) : (
+                        <ResponsiveContainer width="100%" height={220}>
+                            <LineChart data={aqiTrendData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                                <XAxis dataKey="time" tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
+                                <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} domain={[0, 200]} />
+                                <Tooltip content={<AQITooltip />} />
+                                <Line type="monotone" dataKey="aqi" stroke="#9b1c1c" strokeWidth={2} dot={{ r: 4, fill: '#9b1c1c', stroke: '#fff', strokeWidth: 2 }} activeDot={{ r: 6, fill: '#9b1c1c' }} />
+                            </LineChart>
+                        </ResponsiveContainer>
+                    )}
                 </div>
 
                 <div className="chart-card">
@@ -172,29 +177,35 @@ export const AnalyticsPage = () => {
                         </div>
                         <button className="chart-icon-btn" title="Download"><Download size={14} /></button>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                        <div style={{ position: 'relative', flex: '0 0 140px' }}>
-                            <PieChart width={140} height={140}>
-                                <Pie data={pollutantData} cx={65} cy={65} innerRadius={40} outerRadius={65} dataKey="value" startAngle={90} endAngle={-270}>
-                                    {pollutantData.map((entry, i) => (
-                                        <Cell key={i} fill={entry.color} />
-                                    ))}
-                                </Pie>
-                            </PieChart>
-                            <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', textAlign: 'center' }}>
-                                <div style={{ fontSize: 13, fontWeight: 700, color: '#9b1c1c', fontFamily: 'Playfair Display, serif' }}>PM2.5</div>
-                                <div style={{ fontSize: 10, color: '#6b7280' }}>Primary</div>
+                    {pollutantData.length === 0 ? (
+                        <div style={{ padding: '48px 0', textAlign: 'center', color: '#9ca3af', fontSize: 13 }}>
+                            No particulate data yet — waiting for dust sensor readings.
+                        </div>
+                    ) : (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                            <div style={{ position: 'relative', flex: '0 0 140px' }}>
+                                <PieChart width={140} height={140}>
+                                    <Pie data={pollutantData} cx={65} cy={65} innerRadius={40} outerRadius={65} dataKey="value" startAngle={90} endAngle={-270}>
+                                        {pollutantData.map((entry, i) => (
+                                            <Cell key={i} fill={entry.color} />
+                                        ))}
+                                    </Pie>
+                                </PieChart>
+                                <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', textAlign: 'center' }}>
+                                    <div style={{ fontSize: 13, fontWeight: 700, color: '#9b1c1c', fontFamily: 'Playfair Display, serif' }}>PM2.5</div>
+                                    <div style={{ fontSize: 10, color: '#6b7280' }}>Primary</div>
+                                </div>
+                            </div>
+                            <div className="pollutant-legend">
+                                {pollutantData.map(item => (
+                                    <div key={item.name} className="pollutant-legend-item">
+                                        <div className="pollutant-legend-dot" style={{ background: item.color }} />
+                                        <span>{item.name} ({item.value}%)</span>
+                                    </div>
+                                ))}
                             </div>
                         </div>
-                        <div className="pollutant-legend">
-                            {pollutantData.map(item => (
-                                <div key={item.name} className="pollutant-legend-item">
-                                    <div className="pollutant-legend-dot" style={{ background: item.color }} />
-                                    <span>{item.name} ({item.value}%)</span>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
+                    )}
                 </div>
 
                 <div className="chart-card">

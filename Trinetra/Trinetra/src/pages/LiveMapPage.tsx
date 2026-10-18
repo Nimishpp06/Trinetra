@@ -121,9 +121,9 @@ export const LiveMapPage = () => {
                                         {station.hasData ? (
                                             <>
                                                 <div>AQI: <b style={{ color }}>{station.aqi}</b> ({aqiToStatus(station.aqi)})</div>
-                                                {station.temp && <div>Temp: {station.temp}C</div>}
-                                                {station.humidity && <div>Humidity: {station.humidity}%</div>}
-                                                {station.pm25 && <div>PM2.5: {station.pm25} ug/m3</div>}
+                                                {station.temp != null && <div>Temp: {station.temp}C</div>}
+                                                {station.humidity != null && <div>Humidity: {station.humidity}%</div>}
+                                                {station.pm25 != null && <div>PM2.5: {station.pm25} ug/m3</div>}
                                                 {station.source && <div>Source: {station.source}</div>}
                                                 {station.thermalComfort && <div>Comfort: {station.thermalComfort}</div>}
                                             </>

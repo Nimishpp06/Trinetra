@@ -67,8 +67,10 @@ def compute_pm10(dust_density: float) -> float:
 
 def compute_aqi(pm25: float) -> int:
     breakpoints = [
-        (0, 30, 0, 50), (31, 60, 51, 100), (61, 90, 101, 200),
-        (91, 120, 201, 300), (121, 250, 301, 400), (251, 380, 401, 500),
+        # Continuous breakpoints (no 30–31 / 60–61 / ... gaps: values inside a
+        # gap used to fall through and return AQI 0 for polluted air).
+        (0, 30, 0, 50), (30, 60, 51, 100), (60, 90, 101, 200),
+        (90, 120, 201, 300), (120, 250, 301, 400), (250, 380, 401, 500),
     ]
     for pm_low, pm_high, aqi_low, aqi_high in breakpoints:
         if pm_low <= pm25 <= pm_high:
@@ -114,30 +116,36 @@ async def process_readings(
 
     rf, le = get_rf()
 
-    # Fetch a batch of raw readings (full rows) in ONE query. Ordering by id
-    # desc is equivalent to recorded_at desc for identity columns and keeps
-    # the index cheap.
-    query = sb.table("readings").select("*").order("id", desc=True)
+    # Walk forward from the highest reading_id already processed instead of
+    # always taking the NEWEST `limit` rows. With a sliding newest-window, any
+    # readings that fell outside the window while the device kept posting were
+    # skipped forever (the window moves past them). The cursor makes /process
+    # drain the backlog oldest-first, one batch per call; the upsert below
+    # keeps concurrent callers safe.
+    cursor_q = (
+        sb.table("processed_readings")
+        .select("reading_id")
+        .order("reading_id", desc=True)
+        .limit(5)
+    )
+    if station_id:
+        cursor_q = cursor_q.eq("station_id", station_id)
+    cursor_rows = cursor_q.execute().data or []
+    cursor = next(
+        (r["reading_id"] for r in cursor_rows if r.get("reading_id") is not None),
+        0,
+    )
+
+    query = (
+        sb.table("readings")
+        .select("*")
+        .gt("id", cursor)
+        .order("id", desc=False)
+    )
     if station_id:
         query = query.eq("station_id", station_id)
 
     readings = query.limit(limit).execute().data or []
-    if not readings:
-        return {"processed": 0, "message": "No new readings to process"}
-
-    # Ask which of THIS batch are already processed. Scoping to the batch ids
-    # keeps the response bounded (a table-wide select is capped at 1000 rows
-    # and silently truncates, which later causes unique-constraint failures).
-    batch_ids = [r["id"] for r in readings]
-    done_resp = (
-        sb.table("processed_readings")
-        .select("reading_id")
-        .in_("reading_id", batch_ids)
-        .execute()
-    )
-    done_ids = {r["reading_id"] for r in (done_resp.data or [])}
-    readings = [r for r in readings if r["id"] not in done_ids]
-
     if not readings:
         return {"processed": 0, "message": "No new readings to process"}
 

@@ -131,8 +131,10 @@ def forecast_multi(model, feature_scaler, target_scaler,
 
 def compute_aqi(pm25: float) -> int:
     breakpoints = [
-        (0, 30, 0, 50), (31, 60, 51, 100), (61, 90, 101, 200),
-        (91, 120, 201, 300), (121, 250, 301, 400), (251, 380, 401, 500),
+        # Continuous breakpoints (no 30–31 / 60–61 / ... gaps: values inside a
+        # gap used to fall through and return AQI 0 for polluted air).
+        (0, 30, 0, 50), (30, 60, 51, 100), (60, 90, 101, 200),
+        (90, 120, 201, 300), (120, 250, 301, 400), (250, 380, 401, 500),
     ]
     for pm_low, pm_high, aqi_low, aqi_high in breakpoints:
         if pm_low <= pm25 <= pm_high:

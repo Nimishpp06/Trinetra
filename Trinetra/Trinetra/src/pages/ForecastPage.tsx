@@ -74,7 +74,7 @@ export default function ForecastPage() {
     })) || [];
 
     const getDelta = (current: number | undefined, predicted: number | undefined) => {
-        if (!current || !predicted) return null;
+        if (current == null || predicted == null) return null;
         const diff = predicted - current;
         const pct = ((diff / current) * 100).toFixed(0);
         return {

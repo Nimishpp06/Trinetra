@@ -47,7 +47,7 @@ export const LocationLeaderboard = ({ onViewMap }: LocationLeaderboardProps) => 
                     location: sr.name,
                     type: r.source || 'Sensor',
                     aqi,
-                    pollutant: r.pm25_ug_m3 ? 'PM2.5' : 'Dust',
+                    pollutant: r.pm25_ug_m3 != null ? 'PM2.5' : 'Dust',
                     status: aqiToStatus(aqi),
                 };
             })

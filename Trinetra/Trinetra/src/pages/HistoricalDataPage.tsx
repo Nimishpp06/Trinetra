@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { Download, ChevronLeft, ChevronRight } from 'lucide-react';
 import {
     XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -14,6 +14,18 @@ export const HistoricalDataPage = () => {
     const [selectedStation, setSelectedStation] = useState<string>(() => {
         return stationReadings.find(sr => sr.latest_reading)?.id || '';
     });
+    // The initial state above runs before the async data loads, so it is
+    // usually ''. Pick the first station once readings arrive — exactly once,
+    // so deliberately choosing "Select Station" is never overridden.
+    const didInitStation = useRef(false);
+    useEffect(() => {
+        if (didInitStation.current || selectedStation) return;
+        const first = stationReadings.find(sr => sr.latest_reading)?.id || stations[0]?.id;
+        if (first) {
+            didInitStation.current = true;
+            setSelectedStation(first);
+        }
+    }, [stations, stationReadings, selectedStation]);
     const [period, setPeriod] = useState(24);
     const [page, setPage] = useState(0);
 
@@ -40,7 +52,7 @@ export const HistoricalDataPage = () => {
 
     const handleExportCSV = () => {
         if (readings.length === 0) return;
-        const headers = ['timestamp', 'station_id', 'temperature', 'humidity', 'pm25', 'pm10', 'aqi', 'category'];
+        const headers = ['timestamp', 'station_id', 'temperature', 'humidity', 'pm25', 'pm10', 'aqi'];
         const rows = readings.map(r => [
             r.processed_at, r.station_id, r.temperature, r.humidity,
             r.pm25_ug_m3, r.pm10_ug_m3, r.aqi,

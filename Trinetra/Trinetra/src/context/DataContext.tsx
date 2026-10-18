@@ -32,7 +32,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
       // Failure is non-fatal (API offline / demo mode) and must never block
       // the dashboard from rendering.
       await Promise.race([
-        processReadings().catch(() => undefined),
+        processReadings().catch((e) => {
+          // Non-fatal (API offline / demo mode) but must not be invisible:
+          // a silent catch here is what made a stalled pipeline look "empty".
+          console.warn('[data] process readings failed:', e)
+        }),
         new Promise((resolve) => setTimeout(resolve, 8000)),
       ])
 
